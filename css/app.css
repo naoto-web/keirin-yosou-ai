@@ -1,0 +1,97 @@
+/* 競輪予想AI — 画面共通スタイル（スマホ優先・ダーク既定／ライトにも対応） */
+:root {
+  --bg: #14161c; --panel: #1d2028; --panel2: #252935; --line: #323746;
+  --text: #e8eaf0; --muted: #9aa1b2; --accent: #5aa9ff;
+  --buy: #36c48a; --skip: #8a90a0; --hit: #ffcf4a; --miss: #ef6b6b; --warn: #ffb347;
+  --l1: #e65b5b; --l2: #4f8fe6; --l3: #3fb27f; --l4: #d6a43a; --l5: #a874e0;
+  --radius: 12px;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f4f5f8; --panel: #ffffff; --panel2: #eef0f5; --line: #dde0e8;
+    --text: #1b1e26; --muted: #646b7d; --accent: #1f6fd6;
+    --buy: #16955f; --skip: #7b8191; --hit: #b98700; --miss: #cc3d3d; --warn: #c27100;
+  }
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; background: var(--bg); color: var(--text); }
+body { font-family: system-ui, -apple-system, "Hiragino Sans", "Noto Sans JP", sans-serif; font-size: 15px; line-height: 1.5;
+  padding-bottom: env(safe-area-inset-bottom); -webkit-text-size-adjust: 100%; }
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; }
+.num { font-variant-numeric: tabular-nums; }
+.muted { color: var(--muted); }
+.small { font-size: 12px; }
+
+.topbar { position: sticky; top: 0; z-index: 10; display: flex; align-items: baseline; gap: 10px;
+  padding: 12px 16px; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid var(--line); }
+.brand { font-weight: 700; font-size: 17px; }
+.topbar-sub { color: var(--muted); font-size: 12px; margin-left: auto; }
+main { max-width: 760px; margin: 0 auto; padding: 12px 16px 40px; overflow-wrap: anywhere; }
+/* 🪤グリッドの子は既定で中身の幅より縮まない＝長い見送り理由が画面幅を押し広げて右が切れた（10/9実機確認） */
+.ritem > *, .sum > *, .kv > *, .row > * { min-width: 0; }
+
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 10px 0; }
+.card h2 { font-size: 15px; margin: 0 0 8px; }
+.row { display: flex; align-items: center; gap: 8px; }
+.spacer { flex: 1; }
+.btn { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; cursor: pointer; }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.input { width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; color: var(--text); font: inherit; }
+
+/* 日付ナビ・小計 */
+.datenav { display: flex; align-items: center; gap: 8px; margin: 4px 0 8px; }
+.datenav .date { font-weight: 700; font-size: 16px; flex: 1; text-align: center; }
+.sum { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; text-align: center; }
+.sum .v { font-weight: 700; font-size: 16px; }
+.sum .k { color: var(--muted); font-size: 11px; }
+
+/* 絞り込み */
+.chips { display: flex; gap: 6px; overflow-x: auto; padding: 4px 0 6px; scrollbar-width: none; }
+.chips::-webkit-scrollbar { display: none; }
+.chip { flex: none; border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; white-space: nowrap; }
+.chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
+
+/* レース一覧 */
+.rlist { list-style: none; margin: 0; padding: 0; }
+.ritem .mid .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ritem { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; gap: 10px; align-items: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 10px 12px; margin: 8px 0; }
+.ritem.skip { opacity: .78; }
+.ritem .t { text-align: center; }
+.ritem .t .hm { font-weight: 700; font-size: 16px; }
+.ritem .t .cd { font-size: 11px; color: var(--muted); }
+.ritem .t .cd.soon { color: var(--warn); font-weight: 700; }
+.ritem .mid .ttl { font-weight: 700; }
+.ritem .mid .sub { font-size: 12px; color: var(--muted); }
+.ritem .right { text-align: right; font-size: 13px; }
+.badge { display: inline-block; border-radius: 6px; padding: 1px 7px; font-size: 12px; font-weight: 700; line-height: 1.6; }
+.badge.buy { background: color-mix(in srgb, var(--buy) 22%, transparent); color: var(--buy); }
+.badge.skip { background: color-mix(in srgb, var(--skip) 22%, transparent); color: var(--skip); }
+.badge.hit { background: color-mix(in srgb, var(--hit) 25%, transparent); color: var(--hit); }
+.badge.miss { background: color-mix(in srgb, var(--miss) 18%, transparent); color: var(--miss); }
+.badge.st { background: var(--panel2); color: var(--muted); font-weight: 500; }
+.badge.girls { background: color-mix(in srgb, #ff7eb6 22%, transparent); color: #ff7eb6; }
+.badge.grade { background: var(--panel2); color: var(--text); }
+
+/* レース詳細 */
+.rhead .ttl { font-size: 18px; font-weight: 700; }
+.lines { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
+.line { display: flex; gap: 3px; }
+.car { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-weight: 700; color: #111; }
+.car.c1 { background: #f4f4f4; } .car.c2 { background: #222; color: #fff; } .car.c3 { background: #e24b4b; color: #fff; }
+.car.c4 { background: #3b6fd8; color: #fff; } .car.c5 { background: #f0d64a; } .car.c6 { background: #3fa45b; color: #fff; }
+.car.c7 { background: #f08a3c; } .car.c8 { background: #f29ac0; } .car.c9 { background: #8a5bd6; color: #fff; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th, td { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+th { color: var(--muted); font-weight: 500; font-size: 12px; }
+td.r, th.r { text-align: right; }
+tr.hitrow td { background: color-mix(in srgb, var(--hit) 16%, transparent); }
+.cmt { color: var(--muted); font-size: 12px; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 13px; }
+.kv .k { color: var(--muted); }
+.note { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.err { color: var(--miss); }
+.loading { color: var(--muted); padding: 20px 0; text-align: center; }
+.bar { height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; }
+.bar > i { display: block; height: 100%; background: var(--accent); }
