@@ -55,14 +55,12 @@ const U = {
     return out;
   },
   kindHtml(k, lines) { return U.comboKind(k, lines).map(x => `<span class="kind ${x.c}">${x.t}</span>`).join(''); },
-  /** 事故（[[車番, state],...]）のいちばん重い種類＝一覧のバッジ用。落車＞失格＞事故＞欠場（欠場はレース前の取り消し＝返還） */
+  /** 事故（[[車番, state],...]）のいちばん重い種類＝一覧のバッジ用。落車＞失格＞事故。欠場は出さない（Naoto 10/9・元データで除外済み） */
   jikoMain(js) {
     if (!js || !js.length) return null;
     const s = js.map(x => x[1]).join(' ');
     if (/落/.test(s)) return '落車';
     if (/失格/.test(s)) return '失格';
-    if (/事故/.test(s)) return '事故';
-    if (/欠場/.test(s)) return '欠場';
     return '事故';
   },
   stLabel: { pre: '発売前', on: '発売中', closed: '締切', result: '結果' }
