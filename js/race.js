@@ -99,9 +99,9 @@ const Race = {
       diag = `<div class="row" style="flex-wrap:wrap"><span class="dtag ${cls}">${U.esc(g.tag)}</span>
           <span class="small muted num">モデル${g.mr || '—'}番／市場${g.kr || '—'}番</span></div>
         <div class="small" style="margin-top:6px">${U.esc(g.why)}</div>
-        ${g.layers ? `<table style="margin-top:8px"><thead><tr><th>ズレの座標</th><th class="r">モデル</th><th class="r">市場</th><th class="r">推した車 モデル→市場</th></tr></thead><tbody>
+        ${g.layers ? `<table style="margin-top:8px"><thead><tr><th>ズレの座標</th><th class="r">モデル</th><th class="r">市場</th><th class="r">推した車<div class="small">モデル→市場</div></th></tr></thead><tbody>
           ${g.layers.map((x, i) => `<tr class="${x.worst ? 'worst' : ''}"><td>${x.worst ? '★' : ''}${NAME[i]}</td><td class="r num">${U.pct(x.m, 1)}</td><td class="r num">${U.pct(x.k, 1)}</td>
-            <td class="r">${U.carHtml(x.mTop.car)}→${U.carHtml(x.kTop.car)}</td></tr>`).join('')}</tbody></table>
+            <td class="r"><span class="combo sm pair">${U.carHtml(x.mTop.car)}<span class="arr">→</span>${U.carHtml(x.kTop.car)}</span></td></tr>`).join('')}</tbody></table>
           <div class="note">★＝来た目に対してモデルが市場より薄く置いた度合いがいちばん大きい層＝直す場所の候補（原因ではない）。</div>` : ''}`;
     } else {
       diag = `<div class="small muted">診断できません（来た目のモデル順位の記録がない＝全通りの保存は10/9の昼以降に作った予想から）。</div>`;
