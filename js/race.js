@@ -57,9 +57,15 @@ const Race = {
     const line = g => `<div class="line">${g.map(n => `<div class="carcol">${U.carHtml(n)}<span class="nm">${U.esc(sei[n] || '')}</span></div>`).join('')}</div>`;
     return `<div class="lines narabi">${lines.map(line).join('<span class="lsep">・</span>')}</div>`;
   },
-  /** オッズの欄＝オッズ・市場の確率・市場の人気順位（モデルの欄と並べて比べられるように） */
-  oddsCell(o) { return o ? `${U.odds(o.o)}<div class="small muted">${o.p != null ? U.pct(o.p, 2) + '・' : ''}${o.r}位</div>` : '—'; },
+  /** モデル欄と市場欄は同じ形（確率／順位）で横に並べる。オッズは金額の欄へ（張った額×オッズ＝当たったときの払戻）
+   *  2026-10-09 Naoto「％と何位はモデルと市場並んで見れたらいい」 */
   modelCell(m) { return m ? `${U.pct(m.p, 2)}<div class="small muted">${m.r}位</div>` : '—'; },
+  marketCell(o) { return o && o.p != null ? `${U.pct(o.p, 2)}<div class="small muted">${o.r}位</div>` : '—'; },
+  stakeCell(a, o) {
+    const od = o ? U.odds(o.o) : '';
+    if (a == null) return od ? `<span class="muted">—</span><div class="small muted">${od}</div>` : '—';
+    return `${U.num(a)}円<div class="small muted">${od}${o ? '→' + U.num(a * o.o) + '円' : ''}</div>`;   // オッズは1円あたりの倍率＝払戻＝金額×オッズ
+  },
 
   resultCard(j, lines) {
     if (!j.res) return '';
@@ -105,15 +111,15 @@ const Race = {
           <span class="spacer"></span><span class="small muted num">${same.length}点${p.buy ? '・' + U.num(yen) + '円' : ''}・モデル計${U.pct(mp, 1)}</span></span></td></tr>`;
       }
       return grp + `<tr class="${k === resK ? 'hitrow' : ''}"><td>${U.comboHtml(k, true)}<div class="kinds">${U.kindHtml(k, lines)}</div></td>
-        <td class="r num">${p.buy && a != null ? U.num(a) : '—'}</td>
+        <td class="r num">${Race.stakeCell(p.buy ? a : null, o)}</td>
         <td class="r num">${Race.modelCell(m)}</td>
-        <td class="r num">${Race.oddsCell(o)}</td></tr>`;
+        <td class="r num">${Race.marketCell(o)}</td></tr>`;
     }).join('');
     const sortChips = hasLines && keys.length ? `<div class="chips" style="margin-top:8px">${[['ketchaku', '決着順'], ['model', 'モデル順']].map(([v, l]) => `<span class="chip ${mode === v ? 'on' : ''}" data-sort="${v}">${l}</span>`).join('')}</div>` : '';
     const cut = (p.cut || []).filter(k => !(p.combos || []).includes(k));
     // 合成倍率のため外した目＝1目1行・右にモデルとオッズ（市場の確率・人気）
     const cutRows = cut.map(k => `<tr class="${k === resK ? 'hitrow' : ''}"><td>${U.comboHtml(k, true)}<div class="kinds">${U.kindHtml(k, lines)}</div></td>
-        <td class="r num muted">—</td><td class="r num">${Race.modelCell(p.mp ? p.mp[k] : null)}</td><td class="r num">${Race.oddsCell(odds[k])}</td></tr>`).join('');
+        <td class="r num">${Race.stakeCell(null, odds[k])}</td><td class="r num">${Race.modelCell(p.mp ? p.mp[k] : null)}</td><td class="r num">${Race.marketCell(odds[k])}</td></tr>`).join('');
     return `<div class="card"><h2>買い目</h2>
       <div>${head}</div>
       ${p.buy ? `<div class="kv" style="margin-top:8px">
@@ -121,7 +127,7 @@ const Race = {
         <span class="k">当たれば</span><span class="num">${U.yen(p.payMin)}〜${U.yen(p.payMax)}（合成 ${p.gousei != null ? (+p.gousei).toFixed(2) + '倍' : '—'}）</span>
         <span class="k">的中見込み</span><span class="num">${U.pct(p.pHit, 1)}</span></div>` : ''}
       ${sortChips}
-      ${rows ? `<table style="margin-top:4px"><thead><tr><th>目</th><th class="r">金額</th><th class="r">モデル</th><th class="r">オッズ（市場）</th></tr></thead><tbody>${rows}</tbody></table>` : ''}
+      ${rows ? `<table style="margin-top:4px"><thead><tr><th>目</th><th class="r">金額／オッズ</th><th class="r">モデル</th><th class="r">市場</th></tr></thead><tbody>${rows}</tbody></table>` : ''}
       ${!p.buy && rows ? `<div class="note">見送りなので買っていません。表は「見送らなければ買っていた目」です。</div>` : ''}
       ${cutRows ? `<h2 style="margin-top:14px">合成倍率のため外した目</h2><table><tbody>${cutRows}</tbody></table>` : ''}
       <div class="note">モデル・市場とも「その目が来る確率・210通り（9車は504通り）の中の順位」。市場の確率はオッズから控除分を除いたもの。</div>
