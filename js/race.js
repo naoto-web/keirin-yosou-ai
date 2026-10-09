@@ -21,6 +21,7 @@ const Race = {
         ${(x.seri && x.seri.length) ? `<div class="note">競りあり</div>` : ''}
       </div>
       ${Race.resultCard(j, lines)}
+      ${Race.reviewCard(j, d)}
       <div id="predcard">${Race.predCard(p, odds, resK, j.oddsSnap, lines, j.riders)}</div>
       ${Race.scenCard(p)}
       ${Race.riderCard(j.riders)}`;
@@ -84,6 +85,38 @@ const Race = {
         <span class="k">市場</span><span class="num">${o ? `${o.p != null ? U.pct(o.p, 2) + '・' : ''}${o.r}番人気（${U.odds(o.o)}）` : '—'}</span>
         ${j.res.kimarite ? `<span class="k">決まり手</span><span>${U.esc(j.res.kimarite)}</span>` : ''}
       </div></div>`;
+  },
+
+  /** 3.3 振り返り＝診断（どこが悪かったか）・ズレの座標・選手のレース後コメント（2026-10-09 段2）
+   *  診断はAPIが shindan.js の写しで出す（Node正本と総当たりで一致を検査済み）。仕分けであって原因ではない */
+  reviewCard(j, d) {
+    if (!j.res) return '';
+    const g = j.diag, post = j.post;
+    let diag = '';
+    if (g) {
+      const cls = g.tag === '★勝ち筋' ? 't-win' : (g.tag === '②考慮漏れ' ? 't-miss2' : '');
+      const NAME = ['1着の層', '2着の層（1着を固定）', '3着の層（1・2着を固定）'];
+      diag = `<div class="row" style="flex-wrap:wrap"><span class="dtag ${cls}">${U.esc(g.tag)}</span>
+          <span class="small muted num">モデル${g.mr || '—'}番／市場${g.kr || '—'}番</span></div>
+        <div class="small" style="margin-top:6px">${U.esc(g.why)}</div>
+        ${g.layers ? `<table style="margin-top:8px"><thead><tr><th>ズレの座標</th><th class="r">モデル</th><th class="r">市場</th><th class="r">推した車 モデル→市場</th></tr></thead><tbody>
+          ${g.layers.map((x, i) => `<tr class="${x.worst ? 'worst' : ''}"><td>${x.worst ? '★' : ''}${NAME[i]}</td><td class="r num">${U.pct(x.m, 1)}</td><td class="r num">${U.pct(x.k, 1)}</td>
+            <td class="r">${U.carHtml(x.mTop.car)}→${U.carHtml(x.kTop.car)}</td></tr>`).join('')}</tbody></table>
+          <div class="note">★＝来た目に対してモデルが市場より薄く置いた度合いがいちばん大きい層＝直す場所の候補（原因ではない）。</div>` : ''}`;
+    } else {
+      diag = `<div class="small muted">診断できません（来た目のモデル順位の記録がない＝全通りの保存は10/9の昼以降に作った予想から）。</div>`;
+    }
+    let pc;
+    if (post && post.length) {
+      pc = post.slice().sort((a, b) => (a[0] || 99) - (b[0] || 99)).map(([rank, car, name, lead, body]) =>
+        `<div class="pc"><div class="row">${U.carHtml(car)}<b>${U.esc(name)}</b><span class="spacer"></span><span class="small muted">${rank ? rank + '着' : ''}</span></div>
+          ${lead ? `<div class="lead">${U.esc(lead)}</div>` : ''}<div class="body">${U.esc(body)}</div></div>`).join('');
+    } else {
+      pc = `<div class="small muted">${d >= U.today() ? 'レース後コメントは翌朝の朝ジョブで届きます。' : 'コメントはありません（取材なし・F1F2の最終日は対象外・アプリに載せているのは直近3日だけ）。'}</div>`;
+    }
+    return `<div class="card"><h2>振り返り</h2>${diag}
+      <h2 style="margin-top:14px">選手のレース後コメント</h2>${pc}
+      ${post && post.length ? '<div class="note">本人の言葉は後知恵を含みます。「何が足りなかったか」の候補として読む。</div>' : ''}</div>`;
   },
 
   predCard(p, odds, resK, snap, lines, riders) {
