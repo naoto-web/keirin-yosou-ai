@@ -41,12 +41,42 @@ const Stats = {
       ${Stats.alertCard(s)}
       <div class="chips" id="rchips">${ranges.map(x => `<span class="chip ${x.id === rg.id ? 'on' : ''}" data-r="${x.id}">${U.esc(x.label)}</span>`).join('')}</div>
       ${rg.what ? `<div class="note" style="margin-top:0">この版で変えたこと：${rg.what.map(U.esc).join('／')}</div>` : ''}
-      ${empty ? `<div class="card muted">この期間の成績はまだありません（翌朝の朝ジョブから1日ずつ増えます）。</div>` : Stats.sumCard(rows) + Stats.chartCard(rows) + Stats.diagCard(rows) + Stats.tableCard(rows)}
+      ${empty ? `<div class="card muted">この期間の成績はまだありません（翌朝の朝ジョブから1日ずつ増えます）。</div>` : Stats.sumCard(rows) + Stats.chartCard(rows) + '<div id="gradecard"></div>' + Stats.diagCard(rows) + Stats.tableCard(rows)}
       ${Stats.weeklyCard(s.weekly)}
       <div class="note">金額は全部仮想（1レース約3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。<br>
         的中率と捕捉率が一緒に落ちたらモデル、的中率だけ落ちたら買い方（§6.146）。</div>`;
     view.querySelectorAll('#rchips .chip').forEach(c => c.onclick = () => { U.set('kai_range', c.dataset.r); Stats.draw(view); });
     Stats.bindChart(view);
+    Stats.loadGrades(view, rg);
+  },
+
+  /** 自信度別（2026-10-09 Naoto）＝本番の券面（GASの凍結予想×確定払戻）から。別の呼び出し（a=grades）で後から差し込む */
+  async loadGrades(view, rg) {
+    const el = view.querySelector('#gradecard'); if (!el) return;
+    if (Stats.g) el.innerHTML = Stats.gradeCard(Stats.g, rg);
+    else el.innerHTML = `<div class="card muted small">自信度別を読み込み中…</div>`;
+    try {
+      const r = await API.grades();
+      Stats.g = r.j;
+      const el2 = view.querySelector('#gradecard'); if (el2) el2.innerHTML = Stats.gradeCard(r.j, rg);
+      if (r.j.pending > 0) setTimeout(() => { Stats.g = null; Stats.loadGrades(view, rg); }, 1000);   // 未集計の日が残っていれば続きを取る
+    } catch (e) { el.innerHTML = `<div class="card muted small">自信度別は読み込めませんでした（${U.esc(e.message)}）</div>`; }
+  },
+  gradeCard(g, rg) {
+    const t = {}, days = Object.keys(g.days || {}).filter(d => d >= rg.from && (!rg.to || d <= rg.to));
+    days.forEach(d => { const x = g.days[d]; for (const k in x) { const o = t[k] || (t[k] = { n: 0, hit: 0, stake: 0, ret: 0, pHit: 0 }); for (const f in o) o[f] += x[k][f] || 0; } });
+    const order = ['S', 'A', 'B', 'C', 'D'].concat(Object.keys(t).filter(k => !'SABCD'.includes(k)));
+    const rows = order.filter(k => t[k]).map(k => { const a = t[k];
+      return `<tr><td><span class="badge grade">${U.esc(k)}</span></td><td class="r num">${a.n}R</td>
+        <td class="r num">${U.pct(a.hit / a.n, 1)}<div class="small muted">申告 ${U.pct(a.pHit / a.n, 1)}</div></td>
+        <td class="r num">${U.pct(a.stake ? a.ret / a.stake : null, 1)}<div class="small muted">${U.num(a.ret - a.stake)}円</div></td></tr>`; }).join('');
+    const from = days.length ? days[0] : null;
+    return `<div class="card"><h2>自信度別</h2>
+      ${rows ? `<table><thead><tr><th>自信度</th><th class="r">買い</th><th class="r">的中率</th><th class="r">回収率／収支</th></tr></thead><tbody>${rows}</tbody></table>`
+        : '<div class="small muted">この期間の集計はまだありません。</div>'}
+      ${g.pending ? `<div class="note">集計中（あと${g.pending}日）…</div>` : ''}
+      <div class="note">本番の券面（アプリに出ていた自信度・買い目・金額）×確定払戻で集計。上の数字（PCでの再計算）とは少しずれます。
+        ${from ? `この表は${U.md(from)}〜（予想の凍結保管が始まった9/14より前は無し）。` : ''}「申告」は自信度が言っていた当たる確率の平均＝実際の的中率と近いほど正直。</div></div>`;
   },
 
   /** 異常＝朝ジョブのエラー・週次レポートの未読／停止。通知は作らない（§9-1）＝開いたときに赤で出す */
