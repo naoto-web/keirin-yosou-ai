@@ -25,5 +25,6 @@ const API = {
   },
   day(d) { return API.cached('kai_day_' + d, { a: 'day', d }); },
   race(d, jo, no) { return API.cached(`kai_race_${d}_${jo}_${no}`, { a: 'race', d, jo, no }); },
+  status() { return API.cached('kai_status', { a: 'status' }); },
   ping() { return API.call({ a: 'ping' }); }
 };
