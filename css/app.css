@@ -113,3 +113,48 @@ tr.grp .car { width: 24px; height: 24px; border-radius: 6px; font-size: 13px; }
 .loading { color: var(--muted); padding: 20px 0; text-align: center; }
 .bar { height: 6px; background: var(--panel2); border-radius: 3px; overflow: hidden; }
 .bar > i { display: block; height: 100%; background: var(--accent); }
+
+/* 下のタブ（今日／成績）＝2026-10-09 段2 */
+body { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
+.tabbar { position: fixed; left: 0; right: 0; bottom: 0; z-index: 10; display: flex; background: var(--panel); border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom); }
+.tabbar a { flex: 1; text-align: center; padding: 6px 0 8px; font-size: 11px; color: var(--muted); }
+.tabbar a .ic { display: block; font-size: 19px; line-height: 1.2; filter: grayscale(1); opacity: .6; }
+.tabbar a.on { color: var(--accent); font-weight: 700; }
+.tabbar a.on .ic { filter: none; opacity: 1; }
+
+/* 成績 */
+.card.alert { border-color: var(--miss); background: color-mix(in srgb, var(--miss) 7%, var(--panel)); }
+.card.alert h2 { color: var(--miss); }
+.card.alert ul { margin: 0; padding-left: 18px; font-size: 13px; }
+.card.okc { padding: 8px 14px; color: var(--buy); }
+.chartwrap { width: 100%; }
+.chart { width: 100%; height: auto; display: block; }
+.chart .cgrid { stroke: var(--line); stroke-width: 1; }
+.chart .cref { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 4 3; }
+.chart .caxis { fill: var(--muted); font-size: 11px; }
+.chart .cbar { fill: #b9b5aa; }
+.chart .cline { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .chit { fill: transparent; cursor: pointer; }
+.chart .ccross { stroke: var(--text); stroke-width: 1; opacity: .35; }
+.ctip { min-height: 2.6em; margin-top: 4px; padding: 6px 8px; background: var(--panel2); border-radius: 8px; }
+.ctip a { color: var(--accent); }
+.legend { display: flex; flex-wrap: wrap; gap: 12px; color: var(--muted); margin-bottom: 4px; }
+.legend i { display: inline-block; vertical-align: middle; margin-right: 4px; }
+.lg-bar { width: 10px; height: 10px; border-radius: 2px; background: #b9b5aa; }
+.lg-line { width: 16px; height: 2px; background: var(--accent); }
+.lg-ref { width: 16px; border-top: 1px dashed var(--muted); }
+.drow { margin: 7px 0; }
+.drow .row { gap: 6px; flex-wrap: wrap; }
+.jrow { display: flex; gap: 8px; margin: 5px 0; font-size: 13px; }
+.jrow .jm { flex: none; }
+
+/* 振り返り（結果の下） */
+.dtag { display: inline-block; border-radius: 6px; padding: 2px 9px; font-weight: 700; font-size: 14px; background: var(--panel2); }
+.dtag.t-win { background: var(--hit-soft); color: var(--hit); }
+.dtag.t-miss2 { background: color-mix(in srgb, var(--miss) 15%, transparent); color: var(--miss); }
+tr.worst td { background: color-mix(in srgb, var(--warn) 12%, transparent); }
+.pc { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.pc:last-child { border-bottom: 0; }
+.pc .lead { font-weight: 700; font-size: 13px; }
+.pc .body { font-size: 13px; margin-top: 2px; }
