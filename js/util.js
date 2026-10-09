@@ -33,5 +33,26 @@ const U = {
   /** 並び文字列（例 "123 45 6 7"）→ ライン配列 */
   parseNarabi(s) { return String(s || '').trim().split(/\s+/).filter(Boolean).map(g => g.replace(/[^0-9]/g, '').split('').map(Number)); },
   carHtml(n) { return `<span class="car c${n}">${n}</span>`; },
+  /** 目（"1-9-5"）を車番の色バッジで（ハイフンなし）。small＝表の中用の小さめ */
+  comboHtml(k, small) { return `<span class="combo${small ? ' sm' : ''}">${String(k).split('-').map(n => `<span class="car c${n}">${n}</span>`).join('')}</span>`; },
+  /** 目の「決まり方」を並びから判定（2026-10-09 Naoto「差しなのか押し切りなのか、ライン決着なのか別線なのか」）
+   *  1着の役割＝ライン先頭→押し切り／番手→番手差し／3番手以降→3番手差し／単騎→単騎
+   *  2・3着＝1着と同じライン→ライン決着（3着まで同じ→ライン3車）／違う→別線。ラインが無い（ガールズ等）は判定しない */
+  comboKind(k, lines) {
+    if (!lines || !lines.some(g => g.length >= 2)) return [];
+    const at = {}; lines.forEach((g, i) => g.forEach((n, p) => { at[n] = { line: i, pos: p, size: g.length }; }));
+    const [a, b, c] = String(k).split('-').map(Number);
+    const A = at[a], B = at[b], C = at[c];
+    if (!A || !B || !C) return [];
+    const out = [];
+    if (A.size === 1) out.push({ t: '単騎', c: 'k-solo' });
+    else if (A.pos === 0) out.push({ t: '押し切り', c: 'k-oshi' });
+    else if (A.pos === 1) out.push({ t: '番手差し', c: 'k-sashi' });
+    else out.push({ t: '3番手差し', c: 'k-sashi' });
+    if (A.size > 1 && B.line === A.line) out.push(C.line === A.line ? { t: 'ライン3車', c: 'k-line' } : { t: 'ライン決着', c: 'k-line' });
+    else out.push({ t: '別線', c: 'k-betsu' });
+    return out;
+  },
+  kindHtml(k, lines) { return U.comboKind(k, lines).map(x => `<span class="kind ${x.c}">${x.t}</span>`).join(''); },
   stLabel: { pre: '発売前', on: '発売中', closed: '締切', result: '結果' }
 };
