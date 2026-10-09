@@ -84,7 +84,13 @@ const Race = {
         <span class="k">モデル</span><span class="num">${mp ? `${U.pct(mp.p, 2)}・${mp.r}番人気` : (p && p.hasAll ? '—' : '記録なし（全通りの保存は10/9の昼以降に作った予想から）')}</span>
         <span class="k">市場</span><span class="num">${o ? `${o.p != null ? U.pct(o.p, 2) + '・' : ''}${o.r}番人気（${U.odds(o.o)}）` : '—'}</span>
         ${j.res.kimarite ? `<span class="k">決まり手</span><span>${U.esc(j.res.kimarite)}</span>` : ''}
+        ${j.jiko && j.jiko.length ? `<span class="k">事故</span><span class="jikolist">${j.jiko.map(([car, st]) =>
+          `<span class="row" style="gap:6px">${U.carHtml(car)}<b>${U.esc(Race.sei(j.riders, car))}</b><span class="badge jiko ${/欠場/.test(st) ? 'soft' : ''}">${U.esc(st)}</span></span>`).join('')}</span>` : ''}
       </div></div>`;
+  },
+  sei(riders, no) {
+    const r = (riders || []).find(x => x.no === +no);
+    return r ? String(r.name || '').trim().split(/[\s　]+/)[0] : '';
   },
 
   /** 3.3 振り返り＝診断（どこが悪かったか）・ズレの座標・選手のレース後コメント（2026-10-09 段2）
@@ -114,7 +120,11 @@ const Race = {
     } else {
       pc = `<div class="small muted">${d >= U.today() ? 'レース後コメントは翌朝の朝ジョブで届きます。' : 'コメントはありません（取材なし・F1F2の最終日は対象外・アプリに載せているのは直近3日だけ）。'}</div>`;
     }
-    return `<div class="card"><h2>振り返り</h2>${diag}
+    // 落車・失格はモデルの外の出来事＝仕分けより先にこれを疑う（欠場はレース前の取り消しなので対象外）
+    const ev = (j.jiko || []).filter(x => !/欠場/.test(x[1]));
+    const jikoNote = ev.length ? `<div class="jikonote">⚠️ このレースは${U.esc(U.jikoMain(ev))}あり（${ev.map(x => x[0] + '番 ' + x[1]).map(U.esc).join('・')}）。
+      荒れた理由はまずこれ＝モデルの外の出来事なので、下の仕分けは割り引いて読む。</div>` : '';
+    return `<div class="card"><h2>振り返り</h2>${jikoNote}${diag}
       <h2 style="margin-top:14px">選手のレース後コメント</h2>${pc}
       ${post && post.length ? '<div class="note">本人の言葉は後知恵を含みます。「何が足りなかったか」の候補として読む。</div>' : ''}</div>`;
   },
