@@ -153,6 +153,8 @@ body { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
 .dtag { display: inline-block; border-radius: 6px; padding: 2px 9px; font-weight: 700; font-size: 14px; background: var(--panel2); }
 .dtag.t-win { background: var(--hit-soft); color: var(--hit); }
 .dtag.t-miss2 { background: color-mix(in srgb, var(--miss) 15%, transparent); color: var(--miss); }
+.combo.pair { white-space: nowrap; align-items: center; }
+.combo.pair .arr { color: var(--muted); font-size: 12px; }
 tr.worst td { background: color-mix(in srgb, var(--warn) 12%, transparent); }
 .pc { padding: 8px 0; border-bottom: 1px solid var(--line); }
 .pc:last-child { border-bottom: 0; }
