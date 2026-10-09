@@ -2,14 +2,29 @@
 'use strict';
 const Home = {
   timer: null,
-  async render(view, d) {
+  /** 2026-10-10 Naoto「詳細から戻るたびに読み込みが入る」
+   *  ⇒ 手元にある前回の一覧（メモリ→端末保存の順）を先に即表示し、裏で取り直して差し替える。
+   *    詳細から戻ったときはスクロール位置も戻す（restore）。 */
+  async render(view, d, restore) {
     d = d || U.today();
-    view.innerHTML = `<div class="loading">読み込み中…</div>`;
+    const token = Home.token = (Home.token || 0) + 1;   // 取り直している間に別画面へ移ったら描かない
+    const saved = Home.d === d && Home.data ? { j: Home.data } : U.get('kai_day_' + d, null);
+    if (saved && saved.j) {
+      Home.data = saved.j; Home.d = d;
+      Home.draw(view, { j: saved.j, stale: false });
+      if (restore) window.scrollTo(0, Home.scroll || 0);
+    } else view.innerHTML = `<div class="loading">読み込み中…</div>`;
     let r;
     try { r = await API.day(d); }
-    catch (e) { if (e.auth) return Setup.render(view, e.message); view.innerHTML = `<div class="card err">${U.esc(e.message)}</div>`; return; }
+    catch (e) {
+      if (saved && saved.j) return;   // 手元の一覧は出ている＝エラーで消さない
+      if (e.auth) return Setup.render(view, e.message); view.innerHTML = `<div class="card err">${U.esc(e.message)}</div>`; return;
+    }
+    if (token !== Home.token) return;
+    const y = window.scrollY;
     Home.data = r.j; Home.d = d;
     Home.draw(view, r);
+    window.scrollTo(0, y);
     clearInterval(Home.timer);
     if (d === U.today()) Home.timer = setInterval(() => { if (location.hash.startsWith('#/day') || location.hash === '#/' || location.hash === '') Home.refresh(view); }, 60000);
   },
