@@ -17,7 +17,7 @@ const Race = {
       <div class="card rhead">
         <div class="ttl">${U.esc(x.venue)} ${x.no}R ${x.isGirls ? '<span class="badge girls">ガールズ</span>' : ''}</div>
         <div class="small muted">${U.dateLabel(d)}・${U.esc(x.cls)}・${x.cars}車・発走 ${U.esc(x.start)}／締切 ${U.esc(x.den)}${U.countdown(d, x.den) ? '（' + U.countdown(d, x.den) + '）' : ''}</div>
-        <div class="lines">${lines.length ? lines.map(g => `<div class="line">${g.map(U.carHtml).join('')}</div>`).join('') : '<span class="small muted">並び未発表</span>'}</div>
+        ${Race.narabiHtml(lines, j.riders)}
         ${(x.seri && x.seri.length) ? `<div class="note">競りあり</div>` : ''}
       </div>
       ${Race.resultCard(j, lines)}
@@ -25,6 +25,18 @@ const Race = {
       ${Race.scenCard(p)}
       ${Race.riderCard(j.riders)}`;
   },
+
+  /** 並び＝車番バッジの下に苗字・ラインとラインの間に「・」（2026-10-09 Naoto） */
+  narabiHtml(lines, riders) {
+    if (!lines.length) return '<div class="lines"><span class="small muted">並び未発表</span></div>';
+    const sei = {};
+    (riders || []).forEach(r => { sei[r.no] = String(r.name || '').trim().split(/[\s　]+/)[0]; });
+    const line = g => `<div class="line">${g.map(n => `<div class="carcol">${U.carHtml(n)}<span class="nm">${U.esc(sei[n] || '')}</span></div>`).join('')}</div>`;
+    return `<div class="lines narabi">${lines.map(line).join('<span class="lsep">・</span>')}</div>`;
+  },
+  /** オッズの欄＝オッズ・市場の確率・市場の人気順位（モデルの欄と並べて比べられるように） */
+  oddsCell(o) { return o ? `${U.odds(o.o)}<div class="small muted">${o.p != null ? U.pct(o.p, 2) + '・' : ''}${o.r}位</div>` : '—'; },
+  modelCell(m) { return m ? `${U.pct(m.p, 2)}<div class="small muted">${m.r}位</div>` : '—'; },
 
   resultCard(j, lines) {
     if (!j.res) return '';
@@ -40,7 +52,7 @@ const Race = {
       <div style="margin-top:6px">${verdict}</div>
       <div class="kv" style="margin-top:8px">
         <span class="k">モデル</span><span class="num">${mp ? `${U.pct(mp.p, 2)}・${mp.r}番人気` : '券面に無い目（順位は朝の振り返りで）'}</span>
-        <span class="k">市場</span><span class="num">${o ? `${U.odds(o.o)}・${o.r}番人気` : '—'}</span>
+        <span class="k">市場</span><span class="num">${o ? `${o.p != null ? U.pct(o.p, 2) + '・' : ''}${o.r}番人気（${U.odds(o.o)}）` : '—'}</span>
         ${j.res.kimarite ? `<span class="k">決まり手</span><span>${U.esc(j.res.kimarite)}</span>` : ''}
       </div></div>`;
   },
@@ -54,19 +66,23 @@ const Race = {
       const m = p.mp ? p.mp[k] : null, o = odds[k], a = p.alloc ? p.alloc[k] : null;
       return `<tr class="${k === resK ? 'hitrow' : ''}"><td>${U.comboHtml(k, true)}<div class="kinds">${U.kindHtml(k, lines)}</div></td>
         <td class="r num">${p.buy && a != null ? U.num(a) : '—'}</td>
-        <td class="r num">${m ? U.pct(m.p, 2) + `<div class="small muted">${m.r}位</div>` : '—'}</td>
-        <td class="r num">${o ? U.odds(o.o) + `<div class="small muted">${o.r}位</div>` : '—'}</td></tr>`;
+        <td class="r num">${Race.modelCell(m)}</td>
+        <td class="r num">${Race.oddsCell(o)}</td></tr>`;
     }).join('');
     const cut = (p.cut || []).filter(k => !(p.combos || []).includes(k));
+    // 合成倍率のため外した目＝1目1行・右にモデルとオッズ（市場の確率・人気）
+    const cutRows = cut.map(k => `<tr class="${k === resK ? 'hitrow' : ''}"><td>${U.comboHtml(k, true)}<div class="kinds">${U.kindHtml(k, lines)}</div></td>
+        <td class="r num muted">—</td><td class="r num">${Race.modelCell(p.mp ? p.mp[k] : null)}</td><td class="r num">${Race.oddsCell(odds[k])}</td></tr>`).join('');
     return `<div class="card"><h2>買い目</h2>
       <div>${head}</div>
       ${p.buy ? `<div class="kv" style="margin-top:8px">
         <span class="k">投資</span><span class="num">${U.yen(p.stake)}</span>
         <span class="k">当たれば</span><span class="num">${U.yen(p.payMin)}〜${U.yen(p.payMax)}（合成 ${p.gousei != null ? (+p.gousei).toFixed(2) + '倍' : '—'}）</span>
         <span class="k">的中見込み</span><span class="num">${U.pct(p.pHit, 1)}</span></div>` : ''}
-      ${rows ? `<table style="margin-top:8px"><thead><tr><th>目</th><th class="r">金額</th><th class="r">モデル</th><th class="r">オッズ</th></tr></thead><tbody>${rows}</tbody></table>` : ''}
+      ${rows ? `<table style="margin-top:8px"><thead><tr><th>目</th><th class="r">金額</th><th class="r">モデル</th><th class="r">オッズ（市場）</th></tr></thead><tbody>${rows}</tbody></table>` : ''}
       ${!p.buy && rows ? `<div class="note">見送りなので買っていません。表は「見送らなければ買っていた目」です。</div>` : ''}
-      ${cut.length ? `<div class="note">合成倍率のため外した目：</div><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:4px">${cut.map(k => U.comboHtml(k, true)).join('')}</div>` : ''}
+      ${cutRows ? `<h2 style="margin-top:14px">合成倍率のため外した目</h2><table><tbody>${cutRows}</tbody></table>` : ''}
+      <div class="note">モデル・市場とも「その目が来る確率・210通り（9車は504通り）の中の順位」。市場の確率はオッズから控除分を除いたもの。</div>
       ${lines.some(g => g.length >= 2) ? `<div class="note">決まり方＝1着がライン先頭なら押し切り・番手なら番手差し／2着が同じラインならライン決着・違えば別線（並びから自動判定）。</div>` : ''}
       <div class="note">予想作成 ${U.esc(p.at)}${p.retime ? `・締切10分前に組み直し ${U.esc(p.retime.at)}` : ''}${p.frozen ? '・凍結済み' : ''}。オッズは${snap ? { final: '確定', last: '締切直前', t10: '締切10分前', pre: '締切2時間前', open: '発売開始時' }[snap] + '時点' : '未取得'}。</div>
     </div>`;
