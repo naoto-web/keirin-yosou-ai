@@ -80,7 +80,7 @@ const Race = {
       <div class="kinds">${U.kindHtml(k, lines)}</div>
       <div style="margin-top:6px">${verdict}</div>
       <div class="kv" style="margin-top:8px">
-        <span class="k">モデル</span><span class="num">${mp ? `${U.pct(mp.p, 2)}・${mp.r}番人気` : '券面に無い目（順位は朝の振り返りで）'}</span>
+        <span class="k">モデル</span><span class="num">${mp ? `${U.pct(mp.p, 2)}・${mp.r}番人気` : (p && p.hasAll ? '—' : '記録なし（全通りの保存は10/9の昼以降に作った予想から）')}</span>
         <span class="k">市場</span><span class="num">${o ? `${o.p != null ? U.pct(o.p, 2) + '・' : ''}${o.r}番人気（${U.odds(o.o)}）` : '—'}</span>
         ${j.res.kimarite ? `<span class="k">決まり手</span><span>${U.esc(j.res.kimarite)}</span>` : ''}
       </div></div>`;
