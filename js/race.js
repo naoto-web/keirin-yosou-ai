@@ -21,9 +21,32 @@ const Race = {
         ${(x.seri && x.seri.length) ? `<div class="note">競りあり</div>` : ''}
       </div>
       ${Race.resultCard(j, lines)}
-      ${Race.predCard(p, odds, resK, j.oddsSnap, lines)}
+      <div id="predcard">${Race.predCard(p, odds, resK, j.oddsSnap, lines, j.riders)}</div>
       ${Race.scenCard(p)}
       ${Race.riderCard(j.riders)}`;
+    // 並べ方の切り替え（決着順／モデル順）＝買い目のカードだけ描き直す
+    Race.last = [p, odds, resK, j.oddsSnap, lines, j.riders];
+    Race.bindSort(view);
+  },
+  bindSort(view) {
+    view.querySelectorAll('#predcard .chip[data-sort]').forEach(c => c.onclick = () => {
+      U.set('kai_sort', c.dataset.sort);
+      view.querySelector('#predcard').innerHTML = Race.predCard.apply(null, Race.last);
+      Race.bindSort(view);
+    });
+  },
+
+  /** 決着順＝1着の選手ごとにまとめる（並び順）。中は2着が同じライン→別線、その中は並び順 */
+  sortByKetchaku(keys, lines) {
+    const order = {}; let i = 0; lines.forEach(g => g.forEach(n => { order[n] = i++; }));
+    const lineOf = {}; lines.forEach((g, li) => g.forEach(n => { lineOf[n] = li; }));
+    const o = n => (order[n] != null ? order[n] : 99);
+    return keys.slice().sort((x, y) => {
+      const [a1, b1, c1] = x.split('-').map(Number), [a2, b2, c2] = y.split('-').map(Number);
+      if (a1 !== a2) return o(a1) - o(a2);
+      const s1 = lineOf[b1] === lineOf[a1] ? 0 : 1, s2 = lineOf[b2] === lineOf[a2] ? 0 : 1;
+      return (s1 - s2) || (o(b1) - o(b2)) || (o(c1) - o(c2));
+    });
   },
 
   /** 並び＝車番バッジの下に苗字・ラインとラインの間に「・」（2026-10-09 Naoto） */
@@ -57,18 +80,36 @@ const Race = {
       </div></div>`;
   },
 
-  predCard(p, odds, resK, snap, lines) {
+  predCard(p, odds, resK, snap, lines, riders) {
     if (!p) return `<div class="card muted">このレースの予想はまだありません（オッズが出そろうと作られます）</div>`;
     const head = p.buy
       ? `<span class="badge buy">買い ${p.combos.length}点</span> <span class="badge grade">自信度 ${U.esc(p.grade)}</span>`
       : `<span class="badge skip">見送り</span> <span class="small muted">${U.esc(p.why)}</span>`;
-    const rows = (p.buy ? p.combos : (p.nogate && p.nogate.combos) || []).map(k => {
+    const hasLines = lines.some(g => g.length >= 2);
+    const mode = hasLines ? U.get('kai_sort', 'ketchaku') : 'model';
+    let keys = (p.buy ? p.combos : (p.nogate && p.nogate.combos) || []).slice();
+    if (mode === 'ketchaku') keys = Race.sortByKetchaku(keys, lines);
+    const sei = {}; (riders || []).forEach(r => { sei[r.no] = String(r.name || '').trim().split(/[\s　]+/)[0]; });
+    let prevA = null;
+    const rows = keys.map(k => {
       const m = p.mp ? p.mp[k] : null, o = odds[k], a = p.alloc ? p.alloc[k] : null;
-      return `<tr class="${k === resK ? 'hitrow' : ''}"><td>${U.comboHtml(k, true)}<div class="kinds">${U.kindHtml(k, lines)}</div></td>
+      let grp = '';
+      const a1 = +k.split('-')[0];
+      if (mode === 'ketchaku' && a1 !== prevA) {
+        prevA = a1;
+        const same = keys.filter(x => +x.split('-')[0] === a1);
+        const yen = same.reduce((s, x) => s + ((p.alloc && p.alloc[x]) || 0), 0);
+        const mp = same.reduce((s, x) => s + ((p.mp && p.mp[x]) ? p.mp[x].p : 0), 0);
+        const k1 = U.comboKind(k, lines)[0];
+        grp = `<tr class="grp"><td colspan="4"><span class="row" style="gap:6px">1着 ${U.carHtml(a1)}<b>${U.esc(sei[a1] || '')}</b>${k1 ? `<span class="kind ${k1.c}">${k1.t}</span>` : ''}
+          <span class="spacer"></span><span class="small muted num">${same.length}点${p.buy ? '・' + U.num(yen) + '円' : ''}・モデル計${U.pct(mp, 1)}</span></span></td></tr>`;
+      }
+      return grp + `<tr class="${k === resK ? 'hitrow' : ''}"><td>${U.comboHtml(k, true)}<div class="kinds">${U.kindHtml(k, lines)}</div></td>
         <td class="r num">${p.buy && a != null ? U.num(a) : '—'}</td>
         <td class="r num">${Race.modelCell(m)}</td>
         <td class="r num">${Race.oddsCell(o)}</td></tr>`;
     }).join('');
+    const sortChips = hasLines && keys.length ? `<div class="chips" style="margin-top:8px">${[['ketchaku', '決着順'], ['model', 'モデル順']].map(([v, l]) => `<span class="chip ${mode === v ? 'on' : ''}" data-sort="${v}">${l}</span>`).join('')}</div>` : '';
     const cut = (p.cut || []).filter(k => !(p.combos || []).includes(k));
     // 合成倍率のため外した目＝1目1行・右にモデルとオッズ（市場の確率・人気）
     const cutRows = cut.map(k => `<tr class="${k === resK ? 'hitrow' : ''}"><td>${U.comboHtml(k, true)}<div class="kinds">${U.kindHtml(k, lines)}</div></td>
@@ -79,7 +120,8 @@ const Race = {
         <span class="k">投資</span><span class="num">${U.yen(p.stake)}</span>
         <span class="k">当たれば</span><span class="num">${U.yen(p.payMin)}〜${U.yen(p.payMax)}（合成 ${p.gousei != null ? (+p.gousei).toFixed(2) + '倍' : '—'}）</span>
         <span class="k">的中見込み</span><span class="num">${U.pct(p.pHit, 1)}</span></div>` : ''}
-      ${rows ? `<table style="margin-top:8px"><thead><tr><th>目</th><th class="r">金額</th><th class="r">モデル</th><th class="r">オッズ（市場）</th></tr></thead><tbody>${rows}</tbody></table>` : ''}
+      ${sortChips}
+      ${rows ? `<table style="margin-top:4px"><thead><tr><th>目</th><th class="r">金額</th><th class="r">モデル</th><th class="r">オッズ（市場）</th></tr></thead><tbody>${rows}</tbody></table>` : ''}
       ${!p.buy && rows ? `<div class="note">見送りなので買っていません。表は「見送らなければ買っていた目」です。</div>` : ''}
       ${cutRows ? `<h2 style="margin-top:14px">合成倍率のため外した目</h2><table><tbody>${cutRows}</tbody></table>` : ''}
       <div class="note">モデル・市場とも「その目が来る確率・210通り（9車は504通り）の中の順位」。市場の確率はオッズから控除分を除いたもの。</div>
