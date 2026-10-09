@@ -1,17 +1,24 @@
 // app.js — 画面の切り替え（#/ … 今日／#/day/YYYYMMDD … その日／#/race/YYYYMMDD/場/R … レース詳細）
 'use strict';
+const isList = hs => hs === '' || hs === '#/' || hs.startsWith('#/day/');
 const App = {
+  prev: location.hash,
   route() {
     const view = document.getElementById('view');
     if (!API.key()) return Setup.render(view);
     const h = location.hash.replace(/^#\/?/, '').split('/');
-    window.scrollTo(0, 0);
+    // 一覧を離れるときにスクロール位置を覚え、レース詳細から一覧へ戻ったときだけ戻す（2026-10-10）
+    const prev = App.prev; App.prev = location.hash;
+    if (isList(prev) && !isList(location.hash)) Home.scroll = window.scrollY;
+    const back = /^#\/race\//.test(prev) && isList(location.hash);
+    Home.token = (Home.token || 0) + 1;   // 一覧の裏の取り直しが、別画面に描かないように
+    if (!back) window.scrollTo(0, 0);
     // 下のタブ（今日／成績）の選択表示。レース詳細は「今日」側の扱い
     document.querySelectorAll('.tabbar a').forEach(a => a.classList.toggle('on', (a.dataset.tab === 'stats') === (h[0] === 'stats')));
     if (h[0] === 'stats') return Stats.render(view);
     if (h[0] === 'race' && h[1] && h[2] && h[3]) return Race.render(view, h[1], h[2], +h[3]);
-    if (h[0] === 'day' && /^\d{8}$/.test(h[1] || '')) return Home.render(view, h[1]);
-    return Home.render(view, U.today());
+    if (h[0] === 'day' && /^\d{8}$/.test(h[1] || '')) return Home.render(view, h[1], back);
+    return Home.render(view, U.today(), back);
   }
 };
 window.addEventListener('hashchange', App.route);
