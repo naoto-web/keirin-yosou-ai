@@ -153,6 +153,12 @@ body { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
 .dtag { display: inline-block; border-radius: 6px; padding: 2px 9px; font-weight: 700; font-size: 14px; background: var(--panel2); }
 .dtag.t-win { background: var(--hit-soft); color: var(--hit); }
 .dtag.t-miss2 { background: color-mix(in srgb, var(--miss) 15%, transparent); color: var(--miss); }
+/* 事故（落車・失格…）＝警告色。欠場はレース前の取り消しなので薄く */
+.badge.jiko { background: color-mix(in srgb, var(--warn) 20%, transparent); color: var(--warn); }
+.badge.jiko.soft { background: var(--panel2); color: var(--muted); }
+.jikolist { display: flex; flex-direction: column; gap: 4px; }
+.jikolist .car { width: 24px; height: 24px; border-radius: 6px; font-size: 13px; }
+.jikonote { font-size: 13px; padding: 8px 10px; margin-bottom: 10px; border-radius: 8px; background: color-mix(in srgb, var(--warn) 12%, transparent); }
 .combo.pair { white-space: nowrap; align-items: center; }
 .combo.pair .arr { color: var(--muted); font-size: 12px; }
 tr.worst td { background: color-mix(in srgb, var(--warn) 12%, transparent); }
