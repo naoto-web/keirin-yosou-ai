@@ -20,13 +20,13 @@ const Race = {
         <div class="lines">${lines.length ? lines.map(g => `<div class="line">${g.map(U.carHtml).join('')}</div>`).join('') : '<span class="small muted">並び未発表</span>'}</div>
         ${(x.seri && x.seri.length) ? `<div class="note">競りあり</div>` : ''}
       </div>
-      ${Race.resultCard(j)}
-      ${Race.predCard(p, odds, resK, j.oddsSnap)}
+      ${Race.resultCard(j, lines)}
+      ${Race.predCard(p, odds, resK, j.oddsSnap, lines)}
       ${Race.scenCard(p)}
       ${Race.riderCard(j.riders)}`;
   },
 
-  resultCard(j) {
+  resultCard(j, lines) {
     if (!j.res) return '';
     const p = j.pred, k = j.res.k, mp = p && p.mp ? p.mp[k] : null, o = (j.odds || {})[k];
     const s = j.settle;
@@ -34,8 +34,9 @@ const Race = {
     if (p && p.buy) verdict = s && s.hit ? `<span class="badge hit">的中 ${U.yen(s.ret)}（投資 ${U.yen(p.stake)}）</span>` : `<span class="badge miss">外れ（投資 ${U.yen(p.stake)}）</span>`;
     else if (p) verdict = `<span class="badge skip">見送り</span>${p.combos && p.combos.indexOf(k) >= 0 ? '' : ''}`;
     return `<div class="card"><h2>結果</h2>
-      <div class="row"><div class="lines" style="margin:0">${k.split('-').map(Number).map(U.carHtml).join('')}</div><span class="spacer"></span>
+      <div class="row">${U.comboHtml(k)}<span class="spacer"></span>
         <div class="num" style="font-weight:700">${U.yen(j.res.pay)}</div></div>
+      <div class="kinds">${U.kindHtml(k, lines)}</div>
       <div style="margin-top:6px">${verdict}</div>
       <div class="kv" style="margin-top:8px">
         <span class="k">モデル</span><span class="num">${mp ? `${U.pct(mp.p, 2)}・${mp.r}番人気` : '券面に無い目（順位は朝の振り返りで）'}</span>
@@ -44,14 +45,14 @@ const Race = {
       </div></div>`;
   },
 
-  predCard(p, odds, resK, snap) {
+  predCard(p, odds, resK, snap, lines) {
     if (!p) return `<div class="card muted">このレースの予想はまだありません（オッズが出そろうと作られます）</div>`;
     const head = p.buy
       ? `<span class="badge buy">買い ${p.combos.length}点</span> <span class="badge grade">自信度 ${U.esc(p.grade)}</span>`
       : `<span class="badge skip">見送り</span> <span class="small muted">${U.esc(p.why)}</span>`;
     const rows = (p.buy ? p.combos : (p.nogate && p.nogate.combos) || []).map(k => {
       const m = p.mp ? p.mp[k] : null, o = odds[k], a = p.alloc ? p.alloc[k] : null;
-      return `<tr class="${k === resK ? 'hitrow' : ''}"><td class="num">${U.esc(k)}</td>
+      return `<tr class="${k === resK ? 'hitrow' : ''}"><td>${U.comboHtml(k, true)}<div class="kinds">${U.kindHtml(k, lines)}</div></td>
         <td class="r num">${p.buy && a != null ? U.num(a) : '—'}</td>
         <td class="r num">${m ? U.pct(m.p, 2) + `<div class="small muted">${m.r}位</div>` : '—'}</td>
         <td class="r num">${o ? U.odds(o.o) + `<div class="small muted">${o.r}位</div>` : '—'}</td></tr>`;
@@ -65,7 +66,8 @@ const Race = {
         <span class="k">的中見込み</span><span class="num">${U.pct(p.pHit, 1)}</span></div>` : ''}
       ${rows ? `<table style="margin-top:8px"><thead><tr><th>目</th><th class="r">金額</th><th class="r">モデル</th><th class="r">オッズ</th></tr></thead><tbody>${rows}</tbody></table>` : ''}
       ${!p.buy && rows ? `<div class="note">見送りなので買っていません。表は「見送らなければ買っていた目」です。</div>` : ''}
-      ${cut.length ? `<div class="note">合成倍率のため外した目：${cut.map(U.esc).join('、')}</div>` : ''}
+      ${cut.length ? `<div class="note">合成倍率のため外した目：</div><div class="row" style="flex-wrap:wrap;gap:8px;margin-top:4px">${cut.map(k => U.comboHtml(k, true)).join('')}</div>` : ''}
+      ${lines.some(g => g.length >= 2) ? `<div class="note">決まり方＝1着がライン先頭なら押し切り・番手なら番手差し／2着が同じラインならライン決着・違えば別線（並びから自動判定）。</div>` : ''}
       <div class="note">予想作成 ${U.esc(p.at)}${p.retime ? `・締切10分前に組み直し ${U.esc(p.retime.at)}` : ''}${p.frozen ? '・凍結済み' : ''}。オッズは${snap ? { final: '確定', last: '締切直前', t10: '締切10分前', pre: '締切2時間前', open: '発売開始時' }[snap] + '時点' : '未取得'}。</div>
     </div>`;
   },
