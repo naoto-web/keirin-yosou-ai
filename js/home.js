@@ -64,7 +64,7 @@ const Home = {
     else badge = `<span class="badge skip">見送り</span>`;
     let right = '';
     if (x.res) {
-      right = `<div class="num">${U.esc(x.res.k)}</div><div class="small muted num">${U.yen(x.res.pay)}</div>`;
+      right = `<div>${U.comboHtml(x.res.k, true)}</div><div class="small muted num">${U.yen(x.res.pay)}</div>`;
       if (x.hit === true) right += `<div><span class="badge hit">的中 ${U.yen(x.ret)}</span></div>`;
       else if (p && p.buy) right += `<div><span class="badge miss">外れ</span></div>`;
     } else {
