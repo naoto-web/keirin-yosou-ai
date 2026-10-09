@@ -85,7 +85,7 @@ const Race = {
         <span class="k">市場</span><span class="num">${o ? `${o.p != null ? U.pct(o.p, 2) + '・' : ''}${o.r}番人気（${U.odds(o.o)}）` : '—'}</span>
         ${j.res.kimarite ? `<span class="k">決まり手</span><span>${U.esc(j.res.kimarite)}</span>` : ''}
         ${j.jiko && j.jiko.length ? `<span class="k">事故</span><span class="jikolist">${j.jiko.map(([car, st]) =>
-          `<span class="row" style="gap:6px">${U.carHtml(car)}<b>${U.esc(Race.sei(j.riders, car))}</b><span class="badge jiko ${/欠場/.test(st) ? 'soft' : ''}">${U.esc(st)}</span></span>`).join('')}</span>` : ''}
+          `<span class="row" style="gap:6px">${U.carHtml(car)}<b>${U.esc(Race.sei(j.riders, car))}</b><span class="badge jiko">${U.esc(st)}</span></span>`).join('')}</span>` : ''}
       </div></div>`;
   },
   sei(riders, no) {
