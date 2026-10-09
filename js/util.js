@@ -15,6 +15,7 @@ const U = {
     const d = new Date(Date.UTC(+ds.slice(0, 4), +ds.slice(4, 6) - 1, +ds.slice(6, 8)));
     return `${+ds.slice(4, 6)}/${+ds.slice(6, 8)}（${'日月火水木金土'[d.getUTCDay()]}）`;
   },
+  md(ds) { return ds ? `${+ds.slice(4, 6)}/${+ds.slice(6, 8)}` : ''; },
   toMin(hm) { const m = /^(\d{1,2}):(\d{2})/.exec(hm || ''); return m ? +m[1] * 60 + +m[2] : null; },
   nowMinJst() { const d = new Date(Date.now() + 9 * 3600e3); return d.getUTCHours() * 60 + d.getUTCMinutes(); },
   /** 締切までの残り（当日だけ）。過ぎたら null */
