@@ -64,7 +64,8 @@ const Home = {
     else badge = `<span class="badge skip">見送り</span>`;
     let right = '';
     if (x.res) {
-      right = `<div>${U.comboHtml(x.res.k, true)}</div><div class="small muted num">${U.yen(x.res.pay)}</div>`;
+      // 2026-10-09 Naoto「一覧では着順を出さなくていい（着順だけ見てもわからない）」＝払戻と的中/外れだけ
+      right = `<div class="small muted num">払戻 ${U.yen(x.res.pay)}</div>`;
       if (x.hit === true) right += `<div><span class="badge hit">的中 ${U.yen(x.ret)}</span></div>`;
       else if (p && p.buy) right += `<div><span class="badge miss">外れ</span></div>`;
     } else {
