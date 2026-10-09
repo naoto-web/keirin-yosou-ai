@@ -103,6 +103,8 @@ th, td { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: lef
 th { color: var(--muted); font-weight: 500; font-size: 12px; }
 td.r, th.r { text-align: right; }
 tr.hitrow td { background: var(--hit-soft); }
+tr.grp td { background: var(--panel2); padding: 6px 8px; border-bottom: 1px solid var(--line); }
+tr.grp .car { width: 24px; height: 24px; border-radius: 6px; font-size: 13px; }
 .cmt { color: var(--muted); font-size: 12px; }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 13px; }
 .kv .k { color: var(--muted); }
