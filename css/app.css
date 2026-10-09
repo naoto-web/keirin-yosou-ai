@@ -1,17 +1,18 @@
-/* 競輪予想AI — 画面共通スタイル（スマホ優先・ダーク既定／ライトにも対応） */
-:root {
-  --bg: #14161c; --panel: #1d2028; --panel2: #252935; --line: #323746;
-  --text: #e8eaf0; --muted: #9aa1b2; --accent: #5aa9ff;
-  --buy: #36c48a; --skip: #8a90a0; --hit: #ffcf4a; --miss: #ef6b6b; --warn: #ffb347;
-  --l1: #e65b5b; --l2: #4f8fe6; --l3: #3fb27f; --l4: #d6a43a; --l5: #a874e0;
+/* 競輪予想AI — 画面共通スタイル（スマホ優先）
+   🔄2026-10-09 Naoto「黒背景を白背景に・シフトアプリみたいな感じで」
+   ＝OKL楽屋（仕事/OKLチーム/スマホアプリ/本番/web/css/app.css）の白背景の色をそのまま使う。
+   スマホがダーク設定でも黒地にしない（テーマの切り替えは持たない）。
+   地＝少し温かいオフホワイト／字＝真っ黒でない濃いグレー／選択中＝紫／主ボタン＝金 */
+:root,
+:root[data-theme="dark"],
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #e9e7e1; --panel: #f7f6f2; --panel2: #e4e2db; --line: #d3d0c7;
+  --text: #23252a; --muted: #555a63; --accent: #5b3fd6;
+  --btn: #d9a441; --btn-line: #c28f2e; --on-btn: #1a1a1a;
+  --buy: #16804a; --skip: #6f737b; --hit: #8a5d00; --miss: #c62828; --warn: #b8561f;
+  --hit-soft: #fbefd5; --shadow: 0 2px 8px rgba(60, 50, 30, .12);
   --radius: 12px;
-}
-@media (prefers-color-scheme: light) {
-  :root:not([data-theme="dark"]) {
-    --bg: #f4f5f8; --panel: #ffffff; --panel2: #eef0f5; --line: #dde0e8;
-    --text: #1b1e26; --muted: #646b7d; --accent: #1f6fd6;
-    --buy: #16955f; --skip: #7b8191; --hit: #b98700; --miss: #cc3d3d; --warn: #c27100;
-  }
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; background: var(--bg); color: var(--text); }
@@ -31,12 +32,12 @@ main { max-width: 760px; margin: 0 auto; padding: 12px 16px 40px; overflow-wrap:
 /* 🪤グリッドの子は既定で中身の幅より縮まない＝長い見送り理由が画面幅を押し広げて右が切れた（10/9実機確認） */
 .ritem > *, .sum > *, .kv > *, .row > * { min-width: 0; }
 
-.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 10px 0; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 12px 14px; margin: 10px 0; box-shadow: var(--shadow); }
 .card h2 { font-size: 15px; margin: 0 0 8px; }
 .row { display: flex; align-items: center; gap: 8px; }
 .spacer { flex: 1; }
 .btn { background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 7px 12px; cursor: pointer; }
-.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+.btn.primary { background: var(--btn); border-color: var(--btn-line); color: var(--on-btn); font-weight: 700; }
 .input { width: 100%; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px; padding: 10px; color: var(--text); font: inherit; }
 
 /* 日付ナビ・小計 */
@@ -68,10 +69,10 @@ main { max-width: 760px; margin: 0 auto; padding: 12px 16px 40px; overflow-wrap:
 .badge { display: inline-block; border-radius: 6px; padding: 1px 7px; font-size: 12px; font-weight: 700; line-height: 1.6; }
 .badge.buy { background: color-mix(in srgb, var(--buy) 22%, transparent); color: var(--buy); }
 .badge.skip { background: color-mix(in srgb, var(--skip) 22%, transparent); color: var(--skip); }
-.badge.hit { background: color-mix(in srgb, var(--hit) 25%, transparent); color: var(--hit); }
+.badge.hit { background: var(--hit-soft); color: var(--hit); }
 .badge.miss { background: color-mix(in srgb, var(--miss) 18%, transparent); color: var(--miss); }
 .badge.st { background: var(--panel2); color: var(--muted); font-weight: 500; }
-.badge.girls { background: color-mix(in srgb, #ff7eb6 22%, transparent); color: #ff7eb6; }
+.badge.girls { background: #fbe1ef; color: #b0306e; }
 .badge.grade { background: var(--panel2); color: var(--text); }
 
 /* レース詳細 */
@@ -79,14 +80,14 @@ main { max-width: 760px; margin: 0 auto; padding: 12px 16px 40px; overflow-wrap:
 .lines { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 6px; }
 .line { display: flex; gap: 3px; }
 .car { width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; font-weight: 700; color: #111; }
-.car.c1 { background: #f4f4f4; } .car.c2 { background: #222; color: #fff; } .car.c3 { background: #e24b4b; color: #fff; }
+.car.c1 { background: #fff; box-shadow: inset 0 0 0 1px var(--line); } .car.c2 { background: #222; color: #fff; } .car.c3 { background: #e24b4b; color: #fff; }
 .car.c4 { background: #3b6fd8; color: #fff; } .car.c5 { background: #f0d64a; } .car.c6 { background: #3fa45b; color: #fff; }
 .car.c7 { background: #f08a3c; } .car.c8 { background: #f29ac0; } .car.c9 { background: #8a5bd6; color: #fff; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { padding: 6px 4px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
 th { color: var(--muted); font-weight: 500; font-size: 12px; }
 td.r, th.r { text-align: right; }
-tr.hitrow td { background: color-mix(in srgb, var(--hit) 16%, transparent); }
+tr.hitrow td { background: var(--hit-soft); }
 .cmt { color: var(--muted); font-size: 12px; }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 13px; }
 .kv .k { color: var(--muted); }
