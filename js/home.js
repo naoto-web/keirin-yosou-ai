@@ -65,7 +65,8 @@ const Home = {
     let right = '';
     if (x.res) {
       // 2026-10-09 Naoto「一覧では着順を出さなくていい（着順だけ見てもわからない）」＝払戻と的中/外れだけ
-      right = `<div class="small muted num">払戻 ${U.yen(x.res.pay)}</div>`;
+      const jm = U.jikoMain(x.jiko);   // 2026-10-09 Naoto「なんでこんなに荒れた？→落車があったからか」が一覧で分かるように
+      right = `${jm ? `<div><span class="badge jiko ${jm === '欠場' ? 'soft' : ''}">${jm}</span></div>` : ''}<div class="small muted num">払戻 ${U.yen(x.res.pay)}</div>`;
       if (x.hit === true) right += `<div><span class="badge hit">的中 ${U.yen(x.ret)}</span></div>`;
       else if (p && p.buy) right += `<div><span class="badge miss">外れ</span></div>`;
     } else {
