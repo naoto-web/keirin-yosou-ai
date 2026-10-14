@@ -41,13 +41,33 @@ const Stats = {
       ${Stats.alertCard(s)}
       <div class="chips" id="rchips">${ranges.map(x => `<span class="chip ${x.id === rg.id ? 'on' : ''}" data-r="${x.id}">${U.esc(x.label)}</span>`).join('')}</div>
       ${rg.what ? `<div class="note" style="margin-top:0">この版で変えたこと：${rg.what.map(U.esc).join('／')}</div>` : ''}
-      ${empty ? `<div class="card muted">この期間の成績はまだありません（翌朝の朝ジョブから1日ずつ増えます）。</div>` : Stats.sumCard(rows) + Stats.chartCard(rows) + '<div id="gradecard"></div>' + Stats.diagCard(rows) + Stats.tableCard(rows)}
+      ${empty ? `<div class="card muted">この期間の成績はまだありません（翌朝の朝ジョブから1日ずつ増えます）。</div>` : Stats.sumCard(rows) + Stats.chartCard(rows) + Stats.planCard(s, rg) + '<div id="gradecard"></div>' + Stats.diagCard(rows) + Stats.tableCard(rows)}
       ${Stats.weeklyCard(s.weekly)}
       <div class="note">金額は全部仮想（1レース約3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。<br>
         的中率と捕捉率が一緒に落ちたらモデル、的中率だけ落ちたら買い方（§6.146）。</div>`;
     view.querySelectorAll('#rchips .chip').forEach(c => c.onclick = () => { U.set('kai_range', c.dataset.r); Stats.draw(view); });
     Stats.bindChart(view);
     Stats.loadGrades(view, rg);
+  },
+
+  /** 検証中の買い方との比較（2026-10-15 Naoto「成績タブにもABD入れれない？」）
+   *  出どころ＝PCの kaikata.js（7車男子・締切10分前のオッズで選び確定払戻で精算）。基準＝今の買い方を同じ土俵で計算し直したもの */
+  planCard(s, rg) {
+    const days = (s.plansDaily || []).filter(d => d.date >= rg.from && (!rg.to || d.date <= rg.to));
+    if (!days.length) return '';
+    const NAMES = [['base', '基準（今の買い方）'], ['A', 'A 人気目を外す'], ['B', 'B スジ×3着に寄せる'], ['D', 'D ズレの大きいレースだけ']];
+    const tot = {}; days.forEach(d => { for (const id in d.p) { const t = tot[id] || (tot[id] = [0, 0, 0, 0]); d.p[id].forEach((v, i) => { t[i] += v; }); } });
+    const b = tot.base ? tot.base[2] / tot.base[1] : null;
+    const rows = NAMES.filter(([id]) => tot[id]).map(([id, nm]) => { const t = tot[id], r = t[1] ? t[2] / t[1] : null;
+      const diff = id !== 'base' && b != null && r != null ? r - b : null;
+      return `<tr class="${id === 'base' ? 'grp' : ''}"><td>${nm}</td><td class="r num">${t[0]}R</td><td class="r num">${t[3]}</td>
+        <td class="r num">${U.pct(r, 1)}${diff != null ? `<div class="small ${diff >= 0 ? '' : 'muted'}">${diff >= 0 ? '+' : ''}${(100 * diff).toFixed(1)}pt</div>` : ''}</td>
+        <td class="r num">${U.num(t[2] - t[1])}円</td></tr>`; }).join('');
+    const inWin = days.filter(d => d.date >= '20261015').length;
+    return `<div class="card"><h2>🔬 検証中の買い方との比較（${days.length}日）</h2>
+      <table><thead><tr><th>買い方</th><th class="r">買ったR</th><th class="r">的中</th><th class="r">回収率<div class="small">基準との差</div></th><th class="r">収支</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="note">7車男子だけ・1レース3,000円・締切10分前のオッズで選び確定払戻で精算（PCで計算）。「基準」は今の買い方を同じ土俵で計算し直したもの＝上の成績とは少しずれます。
+        9/10〜10/14は今のモデルで作り直した参考、<b>10/15〜が判定の窓</b>（この期間では${inWin}日）。<b>途中の数字では判断しない</b>（判定は11/30）。</div></div>`;
   },
 
   /** 自信度別（2026-10-09 Naoto）＝本番の券面（GASの凍結予想×確定払戻）から。別の呼び出し（a=grades）で後から差し込む */
@@ -83,7 +103,9 @@ const Stats = {
   alertCard(s) {
     const items = [];
     const j = s.job || {};
-    if (j.date !== s.today) items.push(`朝ジョブの最新は ${j.date ? U.dateLabel(j.date) : '不明'}＝今日はまだ走っていない`);
+    // 🪤朝ジョブは7:40起動＝それより前は「昨日が最新」で正常。9時を過ぎても今日の分が無いときだけ異常にする（2026-10-15 深夜に誤報）
+    const jstHour = new Date(Date.now() + 9 * 3600e3).getUTCHours();
+    if (j.date !== U.today() && (j.date < U.shiftDay(U.today(), -1) || jstHour >= 9)) items.push(`朝ジョブの最新は ${j.date ? U.dateLabel(j.date) : '不明'}＝今日はまだ走っていない`);
     (j.errors || []).forEach(e => items.push(e));
     const w = s.weekly;
     if (w && w.ageDays >= 8) items.push(`週次レポートの最新が ${w.ageDays}日前＝金曜のタスクが動いていない`);
