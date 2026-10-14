@@ -63,5 +63,12 @@ const U = {
     if (/失格/.test(s)) return '失格';
     return '事故';
   },
+  /** 検証中の案の切り替え（2026-10-14・§6.163.1）。''＝本番。選んだ案は端末に覚える */
+  PLANS: [['', '本番'], ['A', 'A 人気目を外す'], ['B', 'B スジ×3着'], ['D', 'D ズレ大のみ']],
+  plan() { const p = U.get('kai_plan', ''); return ['A', 'B', 'D'].includes(p) ? p : ''; },
+  planChips(id) {
+    const cur = U.plan();
+    return `<div class="chips planchips" id="${id}">${U.PLANS.map(([v, l]) => `<span class="chip ${cur === v ? 'on' : ''}" data-plan="${v}">${l}</span>`).join('')}</div>`;
+  },
   stLabel: { pre: '発売前', on: '発売中', closed: '締切', result: '結果' }
 };
