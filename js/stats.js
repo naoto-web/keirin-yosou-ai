@@ -37,17 +37,51 @@ const Stats = {
     const empty = !rows.length;
     document.getElementById('topbar-sub').textContent = Stats.stale ? '⚠️通信できず・前回のデータ' : `朝ジョブ ${s.generatedAt.slice(5).replace('-', '/')} 作成`;
 
+    // 検証中の案を選んだとき（今日タブと共通の選択・2026-10-15 Naoto「成績タブにABD選ぶボタンが出てこない」）
+    const plan = U.plan();
+    const pname = (U.PLANS.find(x => x[0] === plan) || [])[1];
+    const prow = plan ? Stats.planRows(s, plan, rg) : null;
+
     view.innerHTML = `
       ${Stats.alertCard(s)}
+      ${U.planChips('spchips')}
       <div class="chips" id="rchips">${ranges.map(x => `<span class="chip ${x.id === rg.id ? 'on' : ''}" data-r="${x.id}">${U.esc(x.label)}</span>`).join('')}</div>
       ${rg.what ? `<div class="note" style="margin-top:0">この版で変えたこと：${rg.what.map(U.esc).join('／')}</div>` : ''}
-      ${empty ? `<div class="card muted">この期間の成績はまだありません（翌朝の朝ジョブから1日ずつ増えます）。</div>` : Stats.sumCard(rows) + Stats.chartCard(rows) + Stats.planCard(s, rg) + '<div id="gradecard"></div>' + Stats.diagCard(rows) + Stats.tableCard(rows)}
+      ${plan ? Stats.planBody(prow, pname, s, rg) :
+        (empty ? `<div class="card muted">この期間の成績はまだありません（翌朝の朝ジョブから1日ずつ増えます）。</div>` : Stats.sumCard(rows) + Stats.chartCard(rows) + Stats.planCard(s, rg) + '<div id="gradecard"></div>' + Stats.diagCard(rows) + Stats.tableCard(rows))}
       ${Stats.weeklyCard(s.weekly)}
       <div class="note">金額は全部仮想（1レース約3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。<br>
         的中率と捕捉率が一緒に落ちたらモデル、的中率だけ落ちたら買い方（§6.146）。</div>`;
     view.querySelectorAll('#rchips .chip').forEach(c => c.onclick = () => { U.set('kai_range', c.dataset.r); Stats.draw(view); });
+    view.querySelectorAll('#spchips .chip').forEach(c => c.onclick = () => { U.set('kai_plan', c.dataset.plan); Stats.draw(view); });
     Stats.bindChart(view);
-    Stats.loadGrades(view, rg);
+    if (!plan) Stats.loadGrades(view, rg);
+  },
+
+  /** 案の日別を、本番の日次（daily_digest）と同じ形に読み替える＝小計・グラフ・日別表をそのまま使うため */
+  planRows(s, plan, rg) {
+    return (s.plansDaily || []).filter(d => d.date >= rg.from && (!rg.to || d.date <= rg.to) && d.p[plan])
+      .map(d => { const t = d.p[plan], b = d.p.base || [0, 0, 0, 0];
+        return { date: d.date, bought: t[0], invest: t[1], ret: t[2], hit: t[3], base: { invest: b[1], ret: b[2] } }; });
+  },
+  planBody(rows, pname, s, rg) {
+    const head = `<div class="plannote">🔬 <b>${U.esc(pname)}</b>（検証中の案・実際には買っていない）。7車男子だけ・締切10分前のオッズで選び確定払戻で精算（PCで計算）。
+      9/10〜10/14は今のモデルで作り直した参考、10/15〜が判定の窓。<b>途中の数字では判断しない</b>（判定は11/30）。</div>`;
+    if (!rows.length) return head + `<div class="card muted">この期間の記録はありません（案の記録は9/10〜）。</div>`;
+    const sum = k => rows.reduce((a, r) => a + (r[k] || 0), 0);
+    const inv = sum('invest'), ret = sum('ret'), bInv = rows.reduce((a, r) => a + r.base.invest, 0), bRet = rows.reduce((a, r) => a + r.base.ret, 0);
+    const rr = inv ? ret / inv : null, br = bInv ? bRet / bInv : null;
+    const sumCard = `<div class="card sum plan">
+        <div><div class="v num">${U.pct(rr, 1)}</div><div class="k">回収率</div></div>
+        <div><div class="v num">${rr != null && br != null ? (rr >= br ? '+' : '') + (100 * (rr - br)).toFixed(1) + 'pt' : '—'}</div><div class="k">基準との差（基準 ${U.pct(br, 1)}）</div></div>
+        <div><div class="v num">${U.pct(sum('bought') ? sum('hit') / sum('bought') : null, 1)}</div><div class="k">的中率 ${sum('hit')}/${sum('bought')}R</div></div>
+        <div><div class="v num">${rows.length}<span class="small muted">日</span></div><div class="k">収支 ${U.num(ret - inv)}円</div></div>
+      </div>`;
+    const table = `<div class="card"><h2>日別</h2><table><thead><tr><th>日付</th><th class="r">買い</th><th class="r">的中</th><th class="r">回収率</th><th class="r">基準</th></tr></thead><tbody>
+      ${rows.slice().reverse().map(r => `<tr><td><a href="#/day/${r.date}">${U.dateLabel(r.date)}</a>${r.date < '20261015' ? '<span class="small muted"> 参考</span>' : ''}</td><td class="r num">${r.bought}</td><td class="r num">${r.hit}</td>
+        <td class="r num">${U.pct(r.invest ? r.ret / r.invest : null, 1)}</td><td class="r num muted">${U.pct(r.base.invest ? r.base.ret / r.base.invest : null, 1)}</td></tr>`).join('')}
+      </tbody></table><div class="note">日付をタップすると、その日の一覧を同じ案で開きます。</div></div>`;
+    return head + sumCard + Stats.chartCard(rows) + Stats.planCard(s, rg) + table;
   },
 
   /** 検証中の買い方との比較（2026-10-15 Naoto「成績タブにもABD入れれない？」）
@@ -187,7 +221,7 @@ const Stats = {
         const i = +el.dataset.i, r = Stats.chartRows[i], ma = Stats.chartMa[i];
         const cx = +el.getAttribute('x') + +el.getAttribute('width') / 2;
         cross.setAttribute('x1', cx); cross.setAttribute('x2', cx); cross.style.display = '';
-        tip.innerHTML = `<b>${U.dateLabel(r.date)}</b>　回収率 <b class="num">${U.pct(r.invest ? r.ret / r.invest : null, 1)}</b>（7日平均 ${U.pct(ma, 1)}）　的中 ${r.hit}/${r.bought}R・捕捉 ${r.capture}/${r.races}R　<a href="#/day/${r.date}">この日を見る ›</a>`;
+        tip.innerHTML = `<b>${U.dateLabel(r.date)}</b>　回収率 <b class="num">${U.pct(r.invest ? r.ret / r.invest : null, 1)}</b>（7日平均 ${U.pct(ma, 1)}）　的中 ${r.hit}/${r.bought}R${r.capture != null ? `・捕捉 ${r.capture}/${r.races}R` : ''}　<a href="#/day/${r.date}">この日を見る ›</a>`;
       };
       el.addEventListener('mouseenter', show); el.addEventListener('click', show);
     });
