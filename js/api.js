@@ -27,5 +27,6 @@ const API = {
   race(d, jo, no) { return API.cached(`kai_race_${d}_${jo}_${no}`, { a: 'race', d, jo, no }); },
   status() { return API.cached('kai_status', { a: 'status' }); },
   grades() { return API.cached('kai_grades', { a: 'grades' }); },
+  weekly() { return API.cached('kai_weekly', { a: 'weekly' }); },
   ping() { return API.call({ a: 'ping' }); }
 };
