@@ -149,6 +149,24 @@ body { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
 .jrow { display: flex; gap: 8px; margin: 5px 0; font-size: 13px; }
 .jrow .jm { flex: none; }
 
+/* 検証タブ（2026-10-14） */
+.kcard .kjudge { margin-top: 6px; font-size: 14px; }
+.kcard .kstatus { margin-top: 6px; padding: 6px 8px; background: var(--panel2); border-radius: 8px; }
+.kcard.due { border-color: var(--miss); }
+.kcard.ok { border-color: var(--buy); }
+.kcard details { margin-top: 6px; }
+.kcard summary { color: var(--accent); cursor: pointer; }
+.kpre { white-space: pre-wrap; font-size: 11px; line-height: 1.45; background: var(--panel2); padding: 8px; border-radius: 8px; overflow-x: auto; margin: 6px 0; }
+.md p { margin: 4px 0; font-size: 13px; }
+.md .mdh { margin: 14px 0 6px; font-size: 15px; }
+.md h2.mdh { font-size: 17px; }
+.md blockquote { margin: 4px 0; padding: 4px 10px; border-left: 3px solid var(--accent); background: var(--panel2); font-size: 13px; }
+.md .mdli { font-size: 13px; margin: 2px 0 2px 6px; }
+.md hr { border: 0; border-top: 1px solid var(--line); margin: 12px 0; }
+.md code { background: var(--panel2); padding: 0 4px; border-radius: 4px; font-size: 12px; }
+.mdtable { overflow-x: auto; }
+.mdtable table { font-size: 12px; }
+
 /* 振り返り（結果の下） */
 .dtag { display: inline-block; border-radius: 6px; padding: 2px 9px; font-weight: 700; font-size: 14px; background: var(--panel2); }
 .dtag.t-win { background: var(--hit-soft); color: var(--hit); }
@@ -166,3 +184,4 @@ tr.worst td { background: color-mix(in srgb, var(--warn) 12%, transparent); }
 .pc:last-child { border-bottom: 0; }
 .pc .lead { font-weight: 700; font-size: 13px; }
 .pc .body { font-size: 13px; margin-top: 2px; }
+.kpre.wide { white-space: pre; }   /* 週次レポートの表は折り返さず横スクロール（スマホで列が崩れるため） */
