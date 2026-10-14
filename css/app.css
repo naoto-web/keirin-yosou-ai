@@ -149,6 +149,13 @@ body { padding-bottom: calc(60px + env(safe-area-inset-bottom)); }
 .jrow { display: flex; gap: 8px; margin: 5px 0; font-size: 13px; }
 .jrow .jm { flex: none; }
 
+/* 検証中の案の表示（2026-10-14） */
+.planchips .chip.on { background: #0f766e; border-color: #0f766e; }
+.plannote { font-size: 12px; padding: 8px 10px; margin: 2px 0 6px; border-radius: 8px; background: color-mix(in srgb, #0f766e 12%, var(--panel)); border: 1px solid color-mix(in srgb, #0f766e 35%, transparent); }
+.card.sum.plan { border-color: #0f766e; }
+.card.plancard { border-color: #0f766e; }
+.card.plancard h2 { color: #0f766e; }
+
 /* 検証タブ（2026-10-14） */
 .kcard .kjudge { margin-top: 6px; font-size: 14px; }
 .kcard .kstatus { margin-top: 6px; padding: 6px 8px; background: var(--panel2); border-radius: 8px; }
