@@ -40,7 +40,7 @@ const Home = {
       races: (j.races || []).map(x => {
         const pl = x.plan || { buy: false, why: '' };
         return Object.assign({}, x, {
-          pred: pl.buy ? { buy: true, n: pl.n, grade: pl.tentative ? '暫定' : '' } : { buy: false, why: pl.why || '' },
+          pred: pl.buy ? { buy: true, n: pl.n, grade: pl.ref ? '参考' : (pl.tentative ? '暫定' : '') } : { buy: false, why: pl.why || '' },
           hit: pl.buy ? pl.hit : null, ret: pl.buy ? pl.ret : null
         });
       })
@@ -68,6 +68,7 @@ const Home = {
       ${d !== U.today() ? `<div style="text-align:center;margin-bottom:6px"><a class="btn small" href="#/day/${U.today()}">今日に戻る</a></div>` : ''}
       ${U.planChips('pchips')}
       ${j.plan ? `<div class="plannote">🔬 <b>${U.esc(j.plan.name)}</b>（検証中の案・実際には買っていない）。7車男子だけ。締切10分前のオッズで組み、それより前は「暫定」。<b>途中の数字では判断しない</b>（判定は11/30）。</div>` : ''}
+      ${j.plan && j.planSum && j.planSum.ref ? `<div class="plannote">📎 この日は<b>PCで作り直した参考値</b>（${j.planSum.ref}R）。当時の本番モデルではなく今のモデル（v15）で組んだもの＝判定には使わない。9/10より前は無し。</div>` : ''}
       <div class="card sum ${j.plan ? 'plan' : ''}">
         <div><div class="v num">${s.buy || 0}<span class="small muted">/${s.races || 0}R</span></div><div class="k">買い</div></div>
         <div><div class="v num">${s.hit || 0}<span class="small muted">/${s.settled || 0}</span></div><div class="k">的中</div></div>
