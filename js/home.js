@@ -7,32 +7,47 @@ const Home = {
    *    詳細から戻ったときはスクロール位置も戻す（restore）。 */
   async render(view, d, restore) {
     d = d || U.today();
+    const plan = U.plan();
     const token = Home.token = (Home.token || 0) + 1;   // 取り直している間に別画面へ移ったら描かない
-    const saved = Home.d === d && Home.data ? { j: Home.data } : U.get('kai_day_' + d, null);
+    const saved = Home.d === d && Home.plan === plan && Home.data ? { j: Home.data } : U.get(plan ? `kai_day_${d}_${plan}` : 'kai_day_' + d, null);
     if (saved && saved.j) {
-      Home.data = saved.j; Home.d = d;
+      Home.data = saved.j; Home.d = d; Home.plan = plan;
       Home.draw(view, { j: saved.j, stale: false });
       if (restore) window.scrollTo(0, Home.scroll || 0);
-    } else view.innerHTML = `<div class="loading">読み込み中…</div>`;
+    } else view.innerHTML = `${U.planChips('pchips0')}<div class="loading">読み込み中…${plan ? '（検証中の案はその場で組むので、初めての日は10〜20秒かかります）' : ''}</div>`;
     let r;
-    try { r = await API.day(d); }
+    try { r = await API.day(d, plan); }
     catch (e) {
       if (saved && saved.j) return;   // 手元の一覧は出ている＝エラーで消さない
       if (e.auth) return Setup.render(view, e.message); view.innerHTML = `<div class="card err">${U.esc(e.message)}</div>`; return;
     }
     if (token !== Home.token) return;
     const y = window.scrollY;
-    Home.data = r.j; Home.d = d;
+    Home.data = r.j; Home.d = d; Home.plan = plan;
     Home.draw(view, r);
     window.scrollTo(0, y);
     clearInterval(Home.timer);
     if (d === U.today()) Home.timer = setInterval(() => { if (location.hash.startsWith('#/day') || location.hash === '#/' || location.hash === '') Home.refresh(view); }, 60000);
   },
   async refresh(view) {
-    try { const r = await API.day(Home.d); Home.data = r.j; Home.draw(view, r); } catch (e) {}
+    try { const r = await API.day(Home.d, Home.plan); Home.data = r.j; Home.draw(view, r); } catch (e) {}
+  },
+  /** 検証中の案のとき＝各レースの案の結果を、本番の予想と同じ形に読み替える（一覧・絞り込み・小計をそのまま使うため） */
+  asPlan(j) {
+    if (!j.plan) return j;
+    return Object.assign({}, j, {
+      sum: j.planSum || {},
+      races: (j.races || []).map(x => {
+        const pl = x.plan || { buy: false, why: '' };
+        return Object.assign({}, x, {
+          pred: pl.buy ? { buy: true, n: pl.n, grade: pl.tentative ? '暫定' : '' } : { buy: false, why: pl.why || '' },
+          hit: pl.buy ? pl.hit : null, ret: pl.buy ? pl.ret : null
+        });
+      })
+    });
   },
   draw(view, r) {
-    const j = r.j, d = Home.d;
+    const j = Home.asPlan(r.j), d = Home.d;
     const venue = U.get('kai_venue', 'all'), kind = U.get('kai_kind', 'all');
     const venues = (j.venues || []);
     const s = j.sum || {};
@@ -51,7 +66,9 @@ const Home = {
         <a class="btn" href="#/day/${U.shiftDay(d, 1)}">▶</a>
       </div>
       ${d !== U.today() ? `<div style="text-align:center;margin-bottom:6px"><a class="btn small" href="#/day/${U.today()}">今日に戻る</a></div>` : ''}
-      <div class="card sum">
+      ${U.planChips('pchips')}
+      ${j.plan ? `<div class="plannote">🔬 <b>${U.esc(j.plan.name)}</b>（検証中の案・実際には買っていない）。7車男子だけ。締切10分前のオッズで組み、それより前は「暫定」。<b>途中の数字では判断しない</b>（判定は11/30）。</div>` : ''}
+      <div class="card sum ${j.plan ? 'plan' : ''}">
         <div><div class="v num">${s.buy || 0}<span class="small muted">/${s.races || 0}R</span></div><div class="k">買い</div></div>
         <div><div class="v num">${s.hit || 0}<span class="small muted">/${s.settled || 0}</span></div><div class="k">的中</div></div>
         <div><div class="v num">${U.num(s.ret)}</div><div class="k">回収／投資 ${U.num(s.stake)}</div></div>
@@ -67,6 +84,7 @@ const Home = {
       ${j.note ? `<div class="card muted">${U.esc(j.note)}</div>` : ''}
       <ul class="rlist">${races.map(x => Home.item(x, d)).join('') || '<li class="muted" style="padding:16px 4px">該当するレースはありません</li>'}</ul>
       <div class="note">金額は全部仮想（1レース約3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。</div>`;
+    view.querySelectorAll('#pchips .chip').forEach(c => c.onclick = () => { U.set('kai_plan', c.dataset.plan); Home.render(view, Home.d); });
     view.querySelectorAll('#vchips .chip').forEach(c => c.onclick = () => { U.set('kai_venue', c.dataset.v); Home.draw(view, r); });
     view.querySelectorAll('#kchips .chip').forEach(c => c.onclick = () => { U.set('kai_kind', c.dataset.k); Home.draw(view, r); });
   },
