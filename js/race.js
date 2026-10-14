@@ -4,7 +4,7 @@ const Race = {
   async render(view, d, jo, no) {
     view.innerHTML = `<div class="loading">読み込み中…</div>`;
     let r;
-    try { r = await API.race(d, jo, no); }
+    try { r = await API.race(d, jo, no, U.plan()); }
     catch (e) { if (e.auth) return Setup.render(view, e.message); view.innerHTML = `<div class="card err">${U.esc(e.message)}</div>`; return; }
     const j = r.j, x = j.race, p = j.pred, odds = j.odds || {};
     document.getElementById('topbar-sub').textContent = r.stale ? '⚠️通信できず・前回のデータ' : `更新 ${j.now ? j.now.hm : ''}`;
@@ -21,6 +21,7 @@ const Race = {
         ${(x.seri && x.seri.length) ? `<div class="note">競りあり</div>` : ''}
       </div>
       ${Race.resultCard(j, lines)}
+      ${Race.planCard(j, lines)}
       ${Race.reviewCard(j, d)}
       <div id="predcard">${Race.predCard(p, odds, resK, j.oddsSnap, lines, j.riders)}</div>
       ${Race.scenCard(p)}
@@ -91,6 +92,23 @@ const Race = {
   sei(riders, no) {
     const r = (riders || []).find(x => x.no === +no);
     return r ? String(r.name || '').trim().split(/[\s　]+/)[0] : '';
+  },
+
+  /** 検証中の案の買い目（2026-10-14・§6.163.1）＝本番の凍結確率×オッズのスナップでAPIがその場で組んだもの。実際には買っていない */
+  planCard(j, lines) {
+    const pl = j.plan; if (!pl) return '';
+    const SNAP = { t10: '締切10分前', pre: '締切2時間前（暫定）', open: '発売開始時（暫定）' };
+    if (!pl.set) return `<div class="card plancard"><h2>🔬 ${U.esc(pl.name)}</h2><div class="small">${U.esc(pl.skip || '買い目なし')}</div>
+      <div class="note">検証中の案（実際には買っていない）。途中の数字では判断しない。</div></div>`;
+    const resK = j.res ? j.res.k : null, s = pl.settle;
+    const verdict = s ? (s.hit ? `<span class="badge hit">的中 ${U.yen(s.ret)}（投資 ${U.yen(3000)}）</span>` : `<span class="badge miss">外れ（投資 ${U.yen(3000)}）</span>`) : '';
+    const rows = pl.set.map(x => `<tr class="${x.k === resK ? 'hitrow' : ''}"><td>${U.comboHtml(x.k, true)}<div class="kinds">${U.kindHtml(x.k, lines)}</div></td>
+      <td class="r num">${U.num(x.stake)}円<div class="small muted">${U.odds(x.odds)}→${U.num(x.stake * x.odds)}円</div></td>
+      <td class="r num">${U.pct(x.p, 2)}</td><td class="r num">${x.mk != null ? U.pct(x.mk, 2) : '—'}</td></tr>`).join('');
+    return `<div class="card plancard"><h2>🔬 ${U.esc(pl.name)}の買い目</h2>
+      <div class="row" style="flex-wrap:wrap;gap:6px"><span class="badge buy">買い ${pl.set.length}点</span>${pl.tentative ? '<span class="badge grade">暫定</span>' : ''}${verdict}</div>
+      <table style="margin-top:6px"><thead><tr><th>目</th><th class="r">金額／オッズ</th><th class="r">モデル</th><th class="r">市場</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="note">検証中の案（実際には買っていない）。オッズは${SNAP[pl.snap] || pl.snap}時点で組んだもの。途中の数字では判断しない（判定は11/30）。下の「買い目」は本番の券面です。</div></div>`;
   },
 
   /** 3.3 振り返り＝診断（どこが悪かったか）・ズレの座標・選手のレース後コメント（2026-10-09 段2）
