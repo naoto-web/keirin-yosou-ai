@@ -23,8 +23,9 @@ const API = {
       throw e;
     }
   },
-  day(d) { return API.cached('kai_day_' + d, { a: 'day', d }); },
-  race(d, jo, no) { return API.cached(`kai_race_${d}_${jo}_${no}`, { a: 'race', d, jo, no }); },
+  /** plan＝検証中の案（A/B/D）。空なら本番。端末の保存も案ごとに分ける */
+  day(d, plan) { return plan ? API.cached(`kai_day_${d}_${plan}`, { a: 'day', d, plan }) : API.cached('kai_day_' + d, { a: 'day', d }); },
+  race(d, jo, no, plan) { return plan ? API.cached(`kai_race_${d}_${jo}_${no}_${plan}`, { a: 'race', d, jo, no, plan }) : API.cached(`kai_race_${d}_${jo}_${no}`, { a: 'race', d, jo, no }); },
   status() { return API.cached('kai_status', { a: 'status' }); },
   grades() { return API.cached('kai_grades', { a: 'grades' }); },
   weekly() { return API.cached('kai_weekly', { a: 'weekly' }); },
