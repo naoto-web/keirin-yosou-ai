@@ -1,7 +1,7 @@
 // api.js — 読み出しAPI（GAS「競輪予想AI API」）の呼び出し。鍵は端末に保存したものを使う
 'use strict';
 const API = {
-  URL: 'https://script.google.com/macros/s/AKfycbx64Lgtjj0wPcgUbN1_B6cXOqUYcU2nSCwYnGIG5idxOVEAwf-Hhxc7erffE4BUJWXV/exec',
+  URL: 'https://script.google.com/macros/s/AKfycbwKlwkBiOVbcTuDGamiHKiaRNzX_eKUV86iYEiDr5dLYO-Hp362vdBXVZHdDqBbQZkHEw/exec',
   key() { return U.get('kai_key', ''); },
   async call(params) {
     const q = new URLSearchParams(Object.assign({ k: API.key() }, params));
