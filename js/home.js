@@ -40,7 +40,7 @@ const Home = {
       races: (j.races || []).map(x => {
         const pl = x.plan || { buy: false, why: '' };
         return Object.assign({}, x, {
-          pred: pl.buy ? { buy: true, n: pl.n, grade: pl.prod ? (x.pred && x.pred.grade) || '' : (pl.ref ? '参考' : (pl.tentative ? '暫定' : '')) } : { buy: false, why: pl.why || '' },
+          pred: pl.buy ? { buy: true, n: pl.n, stake: pl.stake, grade: pl.prod ? (x.pred && x.pred.grade) || '' : (pl.ref ? '参考' : (pl.tentative ? '暫定' : '')) } : { buy: false, why: pl.why || '' },
           hit: pl.buy ? pl.hit : null, ret: pl.buy ? pl.ret : null
         });
       })
@@ -99,14 +99,16 @@ const Home = {
     else if (p.buy) badge = `<span class="badge buy">買い ${p.n}点</span> <span class="badge grade">${U.esc(p.grade || '')}</span>`;
     else badge = `<span class="badge skip">見送り</span>`;
     let right = '';
+    // 2026-10-20 Naoto「投資額が3,000円一定じゃなくなったから払戻の上に投資額も入れて」＝買い目v7（7車男子は1Rの投資額が変わる）
+    const inv = p && p.buy && p.stake ? `<div class="small muted num">投資 ${U.yen(p.stake)}</div>` : '';
     if (x.res) {
       // 2026-10-09 Naoto「一覧では着順を出さなくていい（着順だけ見てもわからない）」＝払戻と的中/外れだけ
       const jm = U.jikoMain(x.jiko);   // 2026-10-09 Naoto「なんでこんなに荒れた？→落車があったからか」が一覧で分かるように
-      right = `${jm ? `<div><span class="badge jiko">${jm}</span></div>` : ''}<div class="small muted num">払戻 ${U.yen(x.res.pay)}</div>`;
+      right = `${jm ? `<div><span class="badge jiko">${jm}</span></div>` : ''}${inv}<div class="small muted num">払戻 ${U.yen(x.res.pay)}</div>`;
       if (x.hit === true) right += `<div><span class="badge hit">的中 ${U.yen(x.ret)}</span></div>`;
       else if (p && p.buy) right += `<div><span class="badge miss">外れ</span></div>`;
     } else {
-      right = `<span class="badge st">${U.stLabel[x.st] || ''}</span>`;
+      right = `<span class="badge st">${U.stLabel[x.st] || ''}</span>${inv}`;
     }
     const why = p && !p.buy && p.why ? `・${U.esc(String(p.why).slice(0, 18))}` : '';
     return `<li><a class="ritem ${p && p.buy ? '' : 'skip'}" href="#/race/${d}/${x.jo}/${x.no}">
