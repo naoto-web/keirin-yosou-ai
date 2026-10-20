@@ -70,6 +70,12 @@ const U = {
   /** 2026-10-20 Naoto「過去のやつも直してほしい」＝今の買い目（v7＝スジ×3着・1的中6,000円の変動額）が本番に入る前の日は、APIが凍結確率とオッズのスナップから
    *  今の買い目で組み直した券面を見せる（当時の本番の券面は出さない＝Naoto「残す必要ない」）。10/20は朝の券面が旧・締切前の組み直しから新の混在日なので、この日までを組み直し扱い */
   NOW_SINCE: '20261021',
-  planFor(d) { return d && d < U.NOW_SINCE ? 'NOW' : ''; },
+  /** モデルの切替（2026-10-20 本体 §6.176・アプリ要件定義 §12）＝本線／万車（高配当狙い・別口・仮想）。選んだ方は端末に記憶・既定＝本線。
+   *  万車のときは API に plan=MANSHA を渡す（凍結確率×オッズのスナップでその場で組む＝案の切替と同じ経路）。本線の数字には一切混ぜない */
+  MODELS: [['', '本線'], ['MANSHA', '万車']],
+  model() { const m = U.get('kai_model', ''); return U.MODELS.some(x => x[0] === m) ? m : ''; },
+  modelBtns() { const m = U.model(); return U.MODELS.map(([id, l]) => `<button type="button" class="mbtn ${m === id ? 'on' : ''}" data-model="${id}">${l}</button>`).join(''); },
+  planFor(d) { if (U.model() === 'MANSHA') return 'MANSHA'; return d && d < U.NOW_SINCE ? 'NOW' : ''; },
+  MANSHA_NOTE: '荒れ予測が上位20%相当のレースで、締切10分前のオッズで100倍以上の目からモデル確率の上位10点を100円ずつ（1R 1,000円・7車男子だけ・全額仮想）。本線の券面・成績とは別に数えています。',
   stLabel: { pre: '発売前', on: '発売中', closed: '締切', result: '結果' }
 };
