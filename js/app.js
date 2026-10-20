@@ -6,6 +6,7 @@ const App = {
   route() {
     const view = document.getElementById('view');
     if (!API.key()) return Setup.render(view);
+    App.modelBar();
     const h = location.hash.replace(/^#\/?/, '').split('/');
     // 一覧を離れるときにスクロール位置を覚え、レース詳細から一覧へ戻ったときだけ戻す（2026-10-10）
     const prev = App.prev; App.prev = location.hash;
@@ -22,6 +23,16 @@ const App = {
     if (h[0] === 'race' && h[1] && h[2] && h[3]) return Race.render(view, h[1], h[2], +h[3]);
     if (h[0] === 'day' && /^\d{8}$/.test(h[1] || '')) return Home.render(view, h[1], back);
     return Home.render(view, U.today(), back);
+  },
+  /** 上部のモデル切替「本線／万車」（2026-10-20 アプリ要件定義 §12）＝topbar の2行目に差す（index.html は触らない＝10分キャッシュのため）。
+   *  今日・レース詳細・成績に効く。検証タブでは隠す。切り替えたら今の画面を描き直す */
+  modelBar() {
+    let bar = document.getElementById('modelbar');
+    if (!bar) { bar = document.createElement('div'); bar.id = 'modelbar'; bar.className = 'modelbar'; document.querySelector('.topbar').appendChild(bar); }
+    bar.style.display = /^#\/(kensho|weekly)/.test(location.hash) ? 'none' : '';
+    const m = U.model();
+    bar.innerHTML = `<span class="mlabel">モデル</span><span class="mseg">${U.modelBtns()}</span><span class="mnote">${m === 'MANSHA' ? '🎯 高配当狙い・別口・仮想' : 'スジ×3着・1的中3,000円'}</span>`;
+    bar.querySelectorAll('.mbtn').forEach(b => b.onclick = () => { if (U.model() === b.dataset.model) return; U.set('kai_model', b.dataset.model); App.route(); });
   }
 };
 window.addEventListener('hashchange', App.route);
