@@ -38,22 +38,32 @@ const Stats = {
     const plan = U.plan();
     const pname = (U.PLANS.find(x => x[0] === plan) || [])[1];
     const prow = plan ? Stats.planRows(s, plan, rg) : null;
+    // 種別の切り替え（2026-10-20 Naoto「通常（7車男子）・ガールズ・グレード（9車）で分けて回収率を見れるように」）
+    //   ＝daily_digest の kinds（種別ごとの同じ定義の内訳）を日の行に読み替えて、小計・グラフ・日別表をそのまま使う。仕分け・自信度別は本番全体にしか無いので出さない
+    const KINDS = [['all', '全部'], ['7車男子', '7車男子'], ['9車男子', '9車（グレード）'], ['ガールズ', 'ガールズ']];
+    const kind = U.get('kai_kind2', 'all');
+    const krows = kind === 'all' ? rows : rows.filter(r => r.kinds && r.kinds[kind]).map(r => Object.assign({ date: r.date, diag: {}, hitDiag: {}, skipLoss: 0, cutLoss: 0, kinds: null, structs: kind === '7車男子' ? r.structs : null }, r.kinds[kind]));
+    const body = kind === 'all'
+      ? Stats.sumCard(rows) + Stats.kindCard(rows) + Stats.structCard(rows) + Stats.chartCard(rows) + Stats.planCard(s, rg) + '<div id="gradecard"></div>' + Stats.diagCard(rows) + Stats.tableCard(rows)
+      : (krows.length ? Stats.sumCard(krows, true) + (kind === '7車男子' ? Stats.structCard(krows) : '') + Stats.chartCard(krows) + Stats.tableCard(krows) : `<div class="card muted">この期間に${U.esc(kind)}の記録がありません。</div>`);
 
     view.innerHTML = `
       ${Stats.alertCard(s)}
       ${U.planChips('spchips')}
       <div class="chips" id="rchips">${ranges.map(x => `<span class="chip ${x.id === rg.id ? 'on' : ''}" data-r="${x.id}">${U.esc(x.label)}</span>`).join('')}</div>
+      <div class="chips" id="kchips2">${KINDS.map(([k, l]) => `<span class="chip ${kind === k ? 'on' : ''}" data-k="${k}">${l}</span>`).join('')}</div>
       ${rg.what ? `<div class="note" style="margin-top:0">この版で変えたこと：${rg.what.map(U.esc).join('／')}</div>` : ''}
       ${plan ? Stats.planBody(prow, pname, s, rg) :
-        (empty ? `<div class="card muted">この期間の成績はまだありません（翌朝の朝ジョブから1日ずつ増えます）。</div>` : Stats.sumCard(rows) + Stats.kindCard(rows) + Stats.chartCard(rows) + Stats.planCard(s, rg) + '<div id="gradecard"></div>' + Stats.diagCard(rows) + Stats.tableCard(rows))}
+        (empty ? `<div class="card muted">この期間の成績はまだありません（翌朝の朝ジョブから1日ずつ増えます）。</div>` : body)}
       ${Stats.weeklyCard(s.weekly)}
-      <div class="note">金額は全部仮想（7車男子＝1的中3,000円の変動額・100円未満の目は買わない・1レース最大1,500円／9車・ガールズ＝1レース3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。<br>
-        成績は<b>全日を今のモデル（v15＋買い目v7.1）で計算し直した値</b>＝モデルを変えたら過去も同じモデルで引き直す（2026-10-20〜）。<br>
+      <div class="note">金額は全部仮想（7車男子＝1的中3,000円の変動額・100円未満の目は買わない・固いゲート無し・1レース最大1,500円／9車・ガールズ＝1レース3,000円・固いゲートあり・確定オッズで精算）。本番の損益はGASの台帳が正。<br>
+        成績は<b>全日を今のモデル（v15＋買い目v7.2）で計算し直した値</b>＝モデルを変えたら過去も同じモデルで引き直す（2026-10-20〜）。<br>
         的中率と捕捉率が一緒に落ちたらモデル、的中率だけ落ちたら買い方（§6.146）。</div>`;
     view.querySelectorAll('#rchips .chip').forEach(c => c.onclick = () => { U.set('kai_range', c.dataset.r); Stats.draw(view); });
+    view.querySelectorAll('#kchips2 .chip').forEach(c => c.onclick = () => { U.set('kai_kind2', c.dataset.k); Stats.draw(view); });
     view.querySelectorAll('#spchips .chip').forEach(c => c.onclick = () => { U.set('kai_plan', c.dataset.plan); Stats.draw(view); });
     Stats.bindChart(view);
-    if (!plan) Stats.loadGrades(view, rg);
+    if (!plan && kind === 'all') Stats.loadGrades(view, rg);
   },
 
   /** 案の日別を、本番の日次（daily_digest）と同じ形に読み替える＝小計・グラフ・日別表をそのまま使うため */
@@ -156,7 +166,8 @@ const Stats = {
     });
     return t;
   },
-  sumCard(rows) {
+  /** lite＝種別で絞ったとき（見送りの原価・削った目は種別別に持っていないので出さない） */
+  sumCard(rows, lite) {
     const t = Stats.sum(rows);
     const rr = t.invest ? t.ret / t.invest : null;
     return `<div class="card sum">
@@ -168,8 +179,8 @@ const Stats = {
       <div class="card"><div class="kv">
         <span class="k">投資</span><span class="num">${U.yen(t.invest)}</span>
         <span class="k">回収</span><span class="num">${U.yen(t.ret)}（収支 ${t.ret - t.invest >= 0 ? '+' : ''}${U.yen(t.ret - t.invest)}）</span>
-        <span class="k">見送りの原価</span><span class="num">${U.yen(t.skipLoss)}<span class="small muted">（見送ったが来ていた払戻）</span></span>
-        <span class="k">削った目</span><span class="num">${U.yen(t.cutLoss)}<span class="small muted">（合成倍率で外した目が来た分）</span></span>
+        ${lite ? '' : `<span class="k">見送りの原価</span><span class="num">${U.yen(t.skipLoss)}<span class="small muted">（見送ったが来ていた払戻）</span></span>
+        <span class="k">削った目</span><span class="num">${U.yen(t.cutLoss)}<span class="small muted">（合成倍率で外した目が来た分）</span></span>`}
       </div>
       <div class="note">捕捉率＝来た目がモデルの上位12点に入っていた割合（見送りも含む）＝モデルそのものの物差し。</div></div>`;
   },
@@ -190,6 +201,23 @@ const Stats = {
     return `<div class="card"><h2>種別ごと（${n}日）</h2>
       <table><thead><tr><th>種別</th><th class="r">買い/終了</th><th class="r">的中率</th><th class="r">回収率／収支</th><th class="r">捕捉率</th></tr></thead><tbody>${trs}</tbody></table>
       <div class="note">モデルも買い方も種別で違う（7車男子＝シナリオ木＋スジ×3着＋1的中3,000円の変動額（v7.1・100円未満の目は買わない）／9車＝tree9＋1レース3,000円／ガールズ＝レーティング＋1レース3,000円）。</div></div>`;
+  },
+
+  /** 7車男子のライン構造ごと（2026-10-20 Naoto「3:2:2、3:3:1 みたいに分けて回収率を出したい→構造ごとにモデルを変えていく」）
+   *  ＝hansei.js --json の structs（2車以上のラインの車数を大きい順・1＝単騎）をそのまま足す。レース数の多い順 */
+  structCard(rows) {
+    const t = {}; let n = 0;
+    rows.forEach(r => { if (!r.structs) return; n++; for (const k in r.structs) { const o = t[k] || (t[k] = { races: 0, bought: 0, skipped: 0, hit: 0, invest: 0, ret: 0, capture: 0 }); for (const f in o) o[f] += r.structs[k][f] || 0; } });
+    if (!n) return '';
+    const keys = Object.keys(t).sort((a, b) => t[b].races - t[a].races);
+    const trs = keys.map(k => { const a = t[k];
+      return `<tr><td class="num">${U.esc(k)}</td><td class="r num">${a.bought}/${a.races}</td>
+        <td class="r num">${U.pct(a.bought ? a.hit / a.bought : null, 1)}</td>
+        <td class="r num">${U.pct(a.invest ? a.ret / a.invest : null, 1)}<div class="small muted">${a.ret - a.invest >= 0 ? '+' : ''}${U.num(a.ret - a.invest)}円</div></td>
+        <td class="r num">${U.pct(a.races ? a.capture / a.races : null, 1)}</td></tr>`; }).join('');
+    return `<div class="card"><h2>ライン構造ごと（7車男子・${n}日）</h2>
+      <table><thead><tr><th>構造</th><th class="r">買い/終了</th><th class="r">的中率</th><th class="r">回収率／収支</th><th class="r">捕捉率</th></tr></thead><tbody>${trs}</tbody></table>
+      <div class="note">並びの車数を大きい順に並べたもの（1＝単騎・例 3:2:2）。構造ごとにモデルを分けていく土台（§6.172）。レース数の少ない構造は読まない。</div></div>`;
   },
 
   /** 日別の回収率（棒）と7日移動平均（線）。同じ単位なので軸は1本。100%の線＝トントン */
