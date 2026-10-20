@@ -89,7 +89,7 @@ const Stats = {
   planCard(s, rg) {
     const days = (s.plansDaily || []).filter(d => d.date >= rg.from && (!rg.to || d.date <= rg.to));
     if (!days.length) return '';
-    const NAMES = [['base', '基準（今の買い方）'], ['A', 'A 人気目を外す'], ['B', 'B スジ×3着に寄せる'], ['D', 'D ズレの大きいレースだけ']];
+    const NAMES = [['base', '基準（今の買い方）'], ['A', 'A 人気目を外す'], ['B', 'B スジ×3着に寄せる'], ['D', 'D ズレの大きいレースだけ'], ['E', 'E 番手3点上の押し切り（モデルなし）']];
     const tot = {}; days.forEach(d => { for (const id in d.p) { const t = tot[id] || (tot[id] = [0, 0, 0, 0]); d.p[id].forEach((v, i) => { t[i] += v; }); } });
     const b = tot.base ? tot.base[2] / tot.base[1] : null;
     const rows = NAMES.filter(([id]) => tot[id]).map(([id, nm]) => { const t = tot[id], r = t[1] ? t[2] / t[1] : null;
@@ -101,7 +101,8 @@ const Stats = {
     return `<div class="card"><h2>🔬 検証中の買い方との比較（${days.length}日）</h2>
       <table><thead><tr><th>買い方</th><th class="r">買ったR</th><th class="r">的中</th><th class="r">回収率<div class="small">基準との差</div></th><th class="r">収支</th></tr></thead><tbody>${rows}</tbody></table>
       <div class="note">7車男子だけ・1レース3,000円・締切10分前のオッズで選び確定払戻で精算（PCで計算）。「基準」は今の買い方を同じ土俵で計算し直したもの＝上の成績とは少しずれます。
-        9/10〜10/14は今のモデルで作り直した参考、<b>10/15〜が判定の窓</b>（この期間では${inWin}日）。<b>途中の数字では判断しない</b>（判定は11/30）。</div></div>`;
+        9/10〜10/14は今のモデルで作り直した参考、<b>10/15〜が判定の窓</b>（この期間では${inWin}日）。<b>途中の数字では判断しない</b>（判定はB・Dが11/30、Eが12/15）。
+        案E（10/20登録）はモデルを使わないルール＝番手の得点が先頭より3点以上高いラインの押し切り×3着を払戻均等で買う。10/20以前は参考、窓は10/21〜。今日タブには出ない。</div></div>`;
   },
 
   /** 自信度別（2026-10-09 Naoto）＝本番の券面（GASの凍結予想×確定払戻）から。別の呼び出し（a=grades）で後から差し込む */
