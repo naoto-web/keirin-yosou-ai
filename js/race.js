@@ -98,23 +98,25 @@ const Race = {
    *  当時の本番の券面（旧ルール）は出さない（2026-10-20 Naoto「残す必要ない」＝predCard を出さない）。検証中の案（A/B/D）の表示は旧コード＝今は呼ばれない */
   planCard(j, lines) {
     const pl = j.plan; if (!pl) return '';
-    const now = pl.id === 'NOW';
+    const now = pl.id === 'NOW', isM = pl.id === 'MANSHA';   // isM＝万車モデル（§6.176・別口・仮想）
     const SNAP = { t10: '締切10分前', pre: '締切2時間前（暫定）', open: '発売開始時（暫定）' };
-    const title = now ? '買い目（今の買い目v7.2で組み直し）' : `🔬 ${U.esc(pl.name)}の買い目`;
-    if (!pl.set) return `<div class="card plancard"><h2>${title}</h2><div class="small">${U.esc(pl.skip || '買い目なし')}</div>
-      <div class="note">${now ? '今の買い目なら見送りになるレース。' : '検証中の案（実際には買っていない）。途中の数字では判断しない。'}</div></div>`;
+    const cls = isM ? 'manshacard' : 'plancard';
+    const title = isM ? '🎯 万車モデルの買い目（高配当狙い・別口・仮想）' : now ? '買い目（今の買い目v7.2で組み直し）' : `🔬 ${U.esc(pl.name)}の買い目`;
+    const score = isM && pl.score != null ? `<div class="kv" style="margin-top:6px"><span class="k">荒れ予測</span><span class="num">${U.pct(pl.score, 0)}${pl.thresh != null ? `<span class="small muted">（しきい値 ${U.pct(pl.thresh, 0)}）</span>` : ''}</span></div>` : '';
+    if (!pl.set) return `<div class="card ${cls}"><h2>${title}</h2><div class="small">${U.esc(pl.skip || '買い目なし')}</div>${score}
+      <div class="note">${isM ? '万車モデルは荒れ予測がしきい値以上の7車男子だけ買う。下の「買い目」は本線の券面（別口）。' : now ? '今の買い目なら見送りになるレース。' : '検証中の案（実際には買っていない）。途中の数字では判断しない。'}</div></div>`;
     const resK = j.res ? j.res.k : null, s = pl.settle;
     const inv = pl.stake || pl.set.reduce((t, x) => t + (x.stake || 0), 0);   // v7＝1Rの投資額は券面の合計
     const verdict = s ? (s.hit ? `<span class="badge hit">的中 ${U.yen(s.ret)}（投資 ${U.yen(inv)}）</span>` : `<span class="badge miss">外れ（投資 ${U.yen(inv)}）</span>`) : '';
     const rows = pl.set.map(x => `<tr class="${x.k === resK ? 'hitrow' : ''}"><td>${U.comboHtml(x.k, true)}<div class="kinds">${U.kindHtml(x.k, lines)}</div></td>
       <td class="r num">${U.num(x.stake)}円<div class="small muted">${U.odds(x.odds)}→${U.num(x.stake * x.odds)}円</div></td>
       <td class="r num">${U.pct(x.p, 2)}</td><td class="r num">${x.mk != null ? U.pct(x.mk, 2) : '—'}</td></tr>`).join('');
-    return `<div class="card plancard"><h2>${title}</h2>
-      <div class="row" style="flex-wrap:wrap;gap:6px"><span class="badge buy">買い ${pl.set.length}点</span>${now ? '<span class="badge grade">スジ×3着・1的中3,000円（v7.2）</span>' : ''}${pl.ref ? '<span class="badge grade">参考</span>' : ''}${pl.tentative ? '<span class="badge grade">暫定</span>' : ''}${verdict}</div>
+    return `<div class="card ${cls}"><h2>${title}</h2>
+      <div class="row" style="flex-wrap:wrap;gap:6px"><span class="badge buy">${isM ? '万車' : '買い'} ${pl.set.length}点${isM ? '×100円' : ''}</span>${now ? '<span class="badge grade">スジ×3着・1的中3,000円（v7.2）</span>' : ''}${pl.ref ? '<span class="badge grade">参考</span>' : ''}${pl.tentative ? '<span class="badge grade">暫定</span>' : ''}${verdict}</div>
       ${pl.ref ? '<div class="small muted" style="margin-top:4px">📎 PCで作り直した参考値（今のモデルv15で組んだもの・当時の本番モデルとは別）</div>' : ''}
-      <div class="kv" style="margin-top:6px"><span class="k">投資</span><span class="num">${U.yen(inv)}</span>${pl.gousei != null ? `<span class="k">合成</span><span class="num">${(+pl.gousei).toFixed(2)}倍</span>` : ''}</div>
+      <div class="kv" style="margin-top:6px"><span class="k">投資</span><span class="num">${U.yen(inv)}</span>${pl.gousei != null ? `<span class="k">合成</span><span class="num">${(+pl.gousei).toFixed(2)}倍</span>` : ''}</div>${score}
       <table style="margin-top:6px"><thead><tr><th>目</th><th class="r">金額／オッズ</th><th class="r">モデル</th><th class="r">市場</th></tr></thead><tbody>${rows}</tbody></table>
-      <div class="note">${now ? `凍結した確率と${SNAP[pl.snap] || pl.snap}のオッズで、今の買い目v7.2（スジ×3着・賭金＝3,000÷オッズ・100円未満の目は買わない・固いゲート無し）に組み直したもの。当時の本番の券面（旧ルール）は出しません。`
+      <div class="note">${isM ? `${U.MANSHA_NOTE} オッズは${SNAP[pl.snap] || pl.snap}時点。下の「買い目」は本線の券面（別口）。` : now ? `凍結した確率と${SNAP[pl.snap] || pl.snap}のオッズで、今の買い目v7.2（スジ×3着・賭金＝3,000÷オッズ・100円未満の目は買わない・固いゲート無し）に組み直したもの。当時の本番の券面（旧ルール）は出しません。`
         : `検証中の案（実際には買っていない）。オッズは${SNAP[pl.snap] || pl.snap}時点で組んだもの。下の「買い目」は本番の券面です。`}</div></div>`;
   },
 
