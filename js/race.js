@@ -23,11 +23,11 @@ const Race = {
       ${Race.resultCard(j, lines)}
       ${Race.planCard(j, lines)}
       ${Race.reviewCard(j, d)}
-      ${j.plan && j.plan.id === 'NOW' ? '' : `<div id="predcard">${Race.predCard(p, odds, resK, j.oddsSnap, lines, j.riders)}</div>`}
+      ${Race.honsenBelow(j, d, p, odds, resK, lines)}
       ${Race.scenCard(p)}
       ${Race.riderCard(j.riders)}`;
     // 並べ方の切り替え（決着順／モデル順）＝買い目のカードだけ描き直す
-    Race.last = [p, odds, resK, j.oddsSnap, lines, j.riders];
+    Race.last = [p, odds, resK, j.oddsSnap, lines, j.riders, Race.predTitle(j, d)];
     Race.bindSort(view);
   },
   bindSort(view) {
@@ -36,6 +36,18 @@ const Race = {
       view.querySelector('#predcard').innerHTML = Race.predCard.apply(null, Race.last);
       Race.bindSort(view);
     });
+  },
+  /** 本線の券面（predCard）の見出し＝万車モードでは「本線の買い目」と明記（2026-10-20 Naoto「12点の買目のやつが残ってる、ナニコレ」） */
+  predTitle(j, d) { return j.plan && j.plan.id === 'MANSHA' ? '本線の買い目（別口）' : '買い目'; },
+  /** 万車カードの下に出す本線の券面。
+   *  ・本線モード＝10/21より前は planCard（今の買い目で組み直し）が券面なので出さない／10/21〜は本番の券面
+   *  ・万車モード＝10/21〜は本番の券面（v7.2）を「本線の買い目」として出す。10/21より前は本番の券面が旧ルール（12点・3,000円）なので**出さない**
+   *    （Naoto「旧ルールの券面はアプリに残さない」）＝「本線」に切り替えれば組み直した券面が見られる旨だけ */
+  honsenBelow(j, d, p, odds, resK, lines) {
+    const pl = j.plan;
+    if (pl && pl.id === 'NOW') return '';
+    if (pl && pl.id === 'MANSHA' && d < U.NOW_SINCE) return `<div class="card muted small">本線の券面（今の買い目v7.2で組み直したもの）は、上の切替を「本線」にすると見られます。この日の当時の本番の券面（旧ルール）は出しません。</div>`;
+    return `<div id="predcard">${Race.predCard(p, odds, resK, j.oddsSnap, lines, j.riders, Race.predTitle(j, d))}</div>`;
   },
 
   /** 決着順＝1着の選手ごとにまとめる（並び順）。中は2着が同じライン→別線、その中は並び順 */
@@ -72,10 +84,18 @@ const Race = {
   resultCard(j, lines) {
     if (!j.res) return '';
     const p = j.pred, k = j.res.k, mp = p && p.mp ? p.mp[k] : null, o = (j.odds || {})[k];
-    const s = j.settle;
+    const s = j.settle, pl = j.plan;
     let verdict = '';
-    if (p && p.buy) verdict = s && s.hit ? `<span class="badge hit">的中 ${U.yen(s.ret)}（投資 ${U.yen(p.stake)}）</span>` : `<span class="badge miss">外れ（投資 ${U.yen(p.stake)}）</span>`;
-    else if (p) verdict = `<span class="badge skip">見送り</span>${p.combos && p.combos.indexOf(k) >= 0 ? '' : ''}`;
+    // 万車モード（2026-10-20 Naoto「10/13熊本7R 571で的中になってるけど万車の10点にない・投資3,000円って書いてる」）
+    //   ＝結果の判定は**万車枠の精算**で出す（本線の本番券面の的中/投資をここに出さない＝混ぜない）
+    if (pl && pl.id === 'MANSHA') {
+      const ms = pl.settle, inv = pl.stake || (pl.set ? pl.set.length * 100 : 0);
+      verdict = pl.set ? (ms && ms.hit ? `<span class="badge hit">万車枠 的中 ${U.yen(ms.ret)}（投資 ${U.yen(inv)}）</span>` : `<span class="badge miss">万車枠 外れ（投資 ${U.yen(inv)}）</span>`) : `<span class="badge skip">万車枠 見送り</span>`;
+    } else if (pl && pl.id === 'NOW') {
+      const ns = pl.settle, inv = pl.stake || 0;
+      verdict = pl.set ? (ns && ns.hit ? `<span class="badge hit">的中 ${U.yen(ns.ret)}（投資 ${U.yen(inv)}）</span>` : `<span class="badge miss">外れ（投資 ${U.yen(inv)}）</span>`) : `<span class="badge skip">見送り</span>`;
+    } else if (p && p.buy) verdict = s && s.hit ? `<span class="badge hit">的中 ${U.yen(s.ret)}（投資 ${U.yen(p.stake)}）</span>` : `<span class="badge miss">外れ（投資 ${U.yen(p.stake)}）</span>`;
+    else if (p) verdict = `<span class="badge skip">見送り</span>`;
     return `<div class="card"><h2>結果</h2>
       <div class="row">${U.comboHtml(k)}<span class="spacer"></span>
         <div class="num" style="font-weight:700">${U.yen(j.res.pay)}</div></div>
@@ -151,7 +171,8 @@ const Race = {
     const ev = (j.jiko || []).filter(x => !/欠場/.test(x[1]));
     const jikoNote = ev.length ? `<div class="jikonote">⚠️ このレースは${U.esc(U.jikoMain(ev))}あり（${ev.map(x => x[0] + '番 ' + x[1]).map(U.esc).join('・')}）。
       荒れた理由はまずこれ＝モデルの外の出来事なので、下の仕分けは割り引いて読む。</div>` : '';
-    return `<div class="card"><h2>振り返り</h2>${jikoNote}${diag}
+    const isM = j.plan && j.plan.id === 'MANSHA';   // 万車モードでも仕分けは本線（モデルの順位と券面）のもの＝見出しで明記
+    return `<div class="card"><h2>振り返り${isM ? '<span class="small muted">（本線の仕分け＝万車枠とは別）</span>' : ''}</h2>${jikoNote}${diag}
       <h2 style="margin-top:14px">選手のレース後コメント</h2>${pc}
       ${post && post.length ? '<div class="note">本人の言葉は後知恵を含みます。「何が足りなかったか」の候補として読む。</div>' : ''}</div>`;
   },
@@ -164,8 +185,9 @@ const Race = {
     return (C.li === A.li && C.pos === 2) || (C.li !== A.li && C.pos === 0);
   },
 
-  predCard(p, odds, resK, snap, lines, riders) {
+  predCard(p, odds, resK, snap, lines, riders, title) {
     if (!p) return `<div class="card muted">このレースの予想はまだありません（オッズが出そろうと作られます）</div>`;
+    title = title || '買い目';
     const hasLines = lines.some(g => g.length >= 2);
     // 2026-10-20 Naoto「旧ルールの券面はアプリで見えるように残す必要ない」＝ルールの印（スジ×3着／旧ルール）は出さない。10/21より前の日は planCard（今の買い目で組み直し）が券面
     const head = p.buy
@@ -199,7 +221,7 @@ const Race = {
     // 合成倍率のため外した目＝1目1行・右にモデルとオッズ（市場の確率・人気）
     const cutRows = cut.map(k => `<tr class="${k === resK ? 'hitrow' : ''}"><td>${U.comboHtml(k, true)}<div class="kinds">${U.kindHtml(k, lines)}</div></td>
         <td class="r num">${Race.stakeCell(null, odds[k])}</td><td class="r num">${Race.modelCell(p.mp ? p.mp[k] : null)}</td><td class="r num">${Race.marketCell(odds[k])}</td></tr>`).join('');
-    return `<div class="card"><h2>買い目</h2>
+    return `<div class="card"><h2>${U.esc(title)}</h2>
       <div>${head}</div>
       ${p.buy ? `<div class="kv" style="margin-top:8px">
         <span class="k">投資</span><span class="num">${U.yen(p.stake)}</span>
