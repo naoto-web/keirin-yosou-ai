@@ -89,7 +89,7 @@ const Stats = {
   planCard(s, rg) {
     const days = (s.plansDaily || []).filter(d => d.date >= rg.from && (!rg.to || d.date <= rg.to));
     if (!days.length) return '';
-    const NAMES = [['base', '基準（今の買い方）'], ['A', 'A 人気目を外す'], ['B', 'B スジ×3着に寄せる'], ['D', 'D ズレの大きいレースだけ'], ['E', 'E 番手3点上の押し切り（モデルなし）']];
+    const NAMES = [['base', '基準（今の買い方）'], ['A', 'A 人気目を外す'], ['B', 'B スジ×3着に寄せる'], ['D', 'D ズレの大きいレースだけ'], ['E', 'E 番手3点上の押し切り（モデルなし・1R 3,000円）'], ['E2', 'E2 同じ目を1的中1万円の変動額で']];
     const tot = {}; days.forEach(d => { for (const id in d.p) { const t = tot[id] || (tot[id] = [0, 0, 0, 0]); d.p[id].forEach((v, i) => { t[i] += v; }); } });
     const b = tot.base ? tot.base[2] / tot.base[1] : null;
     const rows = NAMES.filter(([id]) => tot[id]).map(([id, nm]) => { const t = tot[id], r = t[1] ? t[2] / t[1] : null;
