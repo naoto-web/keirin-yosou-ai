@@ -33,6 +33,16 @@ const Stats = {
     // 現行の版がまだ0日（版を上げた当日）なら、その旨を出して前の版を見せる
     const empty = !rows.length;
     document.getElementById('topbar-sub').textContent = Stats.stale ? '⚠️通信できず・前回のデータ' : `朝ジョブ ${s.generatedAt.slice(5).replace('-', '/')} 作成`;
+    // 万車モデル（2026-10-20 本体 §6.176・アプリ要件定義 §12）＝上部の切替が「万車」のときは万車の成績だけ（本線と混ぜない）
+    if (U.model() === 'MANSHA') {
+      view.innerHTML = `${Stats.alertCard(s)}
+        <div class="chips" id="rchips">${ranges.map(x => `<span class="chip ${x.id === rg.id ? 'on' : ''}" data-r="${x.id}">${U.esc(x.label)}</span>`).join('')}</div>
+        ${Stats.manshaBody(rows)}
+        <div class="note">万車モデル＝金額は全部仮想（1点100円×最大10点・締切10分前のオッズで選び確定払戻で精算・PCの朝ジョブが計算）。本線の成績は上の切替で「本線」。</div>`;
+      view.querySelectorAll('#rchips .chip').forEach(c => c.onclick = () => { U.set('kai_range', c.dataset.r); Stats.draw(view); });
+      Stats.bindChart(view);
+      return;
+    }
 
     // 検証中の案を選んだとき（今日タブと共通の選択・2026-10-15 Naoto「成績タブにABD選ぶボタンが出てこない」）
     const plan = U.plan();
@@ -64,6 +74,29 @@ const Stats = {
     view.querySelectorAll('#spchips .chip').forEach(c => c.onclick = () => { U.set('kai_plan', c.dataset.plan); Stats.draw(view); });
     Stats.bindChart(view);
     if (!plan && kind === 'all') Stats.loadGrades(view, rg);
+  },
+
+  /** 万車モデルの成績（§6.176）＝daily_digest の mansha（hansei.js の出口・t10 で選び確定で精算）をそのまま足す。9/10〜10/20 は参考・10/21〜が観測 */
+  manshaBody(rows) {
+    const mr = rows.filter(r => r.mansha).map(r => Object.assign({ date: r.date }, r.mansha));
+    const head = `<div class="plannote mansha">🎯 <b>万車モデル（高配当狙い・別口・仮想）</b>＝${U.MANSHA_NOTE} 9/10〜10/20 は同じ定義で引き直した参考、10/21〜が観測。<b>的中50本たまるまで数字は読まない</b>（本体 §6.176.5）。</div>`;
+    if (!mr.length) return head + `<div class="card muted">この期間の記録はありません（万車モデルの記録は9/10〜・翌朝の朝ジョブから増えます）。</div>`;
+    const sum = k => mr.reduce((a, r) => a + (r[k] || 0), 0);
+    const inv = sum('invest'), ret = sum('ret'), rr = inv ? ret / inv : null, bought = sum('bought'), hit = sum('hit');
+    const obs = mr.filter(r => r.date >= '20261021'), oh = obs.reduce((a, r) => a + (r.hit || 0), 0);
+    const sumCard = `<div class="card sum mansha">
+        <div><div class="v num">${U.pct(rr, 1)}</div><div class="k">回収率</div></div>
+        <div><div class="v num">${hit}<span class="small muted">/${bought}R</span></div><div class="k">的中 ${U.pct(bought ? hit / bought : null, 1)}</div></div>
+        <div><div class="v num">${U.num(ret)}</div><div class="k">回収／投資 ${U.num(inv)}</div></div>
+        <div><div class="v num">${mr.length}<span class="small muted">日</span></div><div class="k">収支 ${ret - inv >= 0 ? '+' : ''}${U.num(ret - inv)}円</div></div>
+      </div>
+      <div class="card"><div class="kv"><span class="k">観測の進み</span><span class="num">的中 ${oh}/50本（10/21〜${obs.length}日）${oh >= 50 ? '＝読める' : '＝まだ読まない'}</span>
+        <span class="k">対象→買い</span><span class="num">${sum('races')}R → ${bought}R（荒れ予測で見送り ${sum('skipped')}R）</span></div></div>`;
+    const table = `<div class="card"><h2>日別</h2><table><thead><tr><th>日付</th><th class="r">買い/対象</th><th class="r">的中</th><th class="r">投資</th><th class="r">回収率</th></tr></thead><tbody>
+      ${mr.slice().reverse().map(r => `<tr><td><a href="#/day/${r.date}">${U.dateLabel(r.date)}</a>${r.date < '20261021' ? '<span class="small muted"> 参考</span>' : ''}</td><td class="r num">${r.bought}/${r.races}</td><td class="r num">${r.hit}</td><td class="r num">${U.num(r.invest)}</td>
+        <td class="r num">${U.pct(r.invest ? r.ret / r.invest : null, 1)}</td></tr>`).join('')}
+      </tbody></table><div class="note">日付をタップすると、その日の一覧を万車モデルで開きます。</div></div>`;
+    return head + sumCard + Stats.chartCard(mr) + table;
   },
 
   /** 案の日別を、本番の日次（daily_digest）と同じ形に読み替える＝小計・グラフ・日別表をそのまま使うため */
