@@ -7,14 +7,14 @@ const Home = {
    *    詳細から戻ったときはスクロール位置も戻す（restore）。 */
   async render(view, d, restore) {
     d = d || U.today();
-    const plan = U.plan();
+    const plan = U.planFor(d);   // 10/20以前＝v6で組み直し（2026-10-20）
     const token = Home.token = (Home.token || 0) + 1;   // 取り直している間に別画面へ移ったら描かない
     const saved = Home.d === d && Home.plan === plan && Home.data ? { j: Home.data } : U.get(plan ? `kai_day_${d}_${plan}` : 'kai_day_' + d, null);
     if (saved && saved.j) {
       Home.data = saved.j; Home.d = d; Home.plan = plan;
       Home.draw(view, { j: saved.j, stale: false });
       if (restore) window.scrollTo(0, Home.scroll || 0);
-    } else view.innerHTML = `${U.planChips('pchips0')}<div class="loading">読み込み中…${plan ? '（検証中の案はその場で組むので、初めての日は10〜20秒かかります）' : ''}</div>`;
+    } else view.innerHTML = `${U.planChips('pchips0')}<div class="loading">読み込み中…${plan ? '（v6で組み直すので、初めての日は10〜20秒かかります）' : ''}</div>`;
     let r;
     try { r = await API.day(d, plan); }
     catch (e) {
@@ -40,7 +40,7 @@ const Home = {
       races: (j.races || []).map(x => {
         const pl = x.plan || { buy: false, why: '' };
         return Object.assign({}, x, {
-          pred: pl.buy ? { buy: true, n: pl.n, grade: pl.ref ? '参考' : (pl.tentative ? '暫定' : '') } : { buy: false, why: pl.why || '' },
+          pred: pl.buy ? { buy: true, n: pl.n, grade: pl.prod ? (x.pred && x.pred.grade) || '' : (pl.ref ? '参考' : (pl.tentative ? '暫定' : '')) } : { buy: false, why: pl.why || '' },
           hit: pl.buy ? pl.hit : null, ret: pl.buy ? pl.ret : null
         });
       })
@@ -67,8 +67,10 @@ const Home = {
       </div>
       ${d !== U.today() ? `<div style="text-align:center;margin-bottom:6px"><a class="btn small" href="#/day/${U.today()}">今日に戻る</a></div>` : ''}
       ${U.planChips('pchips')}
-      ${j.plan ? `<div class="plannote">🔬 <b>${U.esc(j.plan.name)}</b>（検証中の案・実際には買っていない）。7車男子だけ。締切10分前のオッズで組み、それより前は「暫定」。<b>途中の数字では判断しない</b>（判定は11/30）。</div>` : ''}
-      ${j.plan && j.planSum && j.planSum.ref ? `<div class="plannote">📎 この日は<b>PCで作り直した参考値</b>（${j.planSum.ref}R）。当時の本番モデルではなく今のモデル（v15）で組んだもの＝判定には使わない。9/10より前は無し。</div>` : ''}
+      ${j.plan && j.plan.id === 'V6' ? `<div class="plannote">🧮 この日は<b>今の買い目v6（スジ×3着）で組み直した券面</b>。当時の本番は旧ルール（番手差し等も候補）だったので、7車男子は凍結した確率と締切10分前のオッズで組み直しています。9車・ガールズは当時の本番のまま。</div>`
+        : j.plan ? `<div class="plannote">🔬 <b>${U.esc(j.plan.name)}</b>（検証中の案・実際には買っていない）。7車男子だけ。</div>` : ''}
+      ${j.plan && j.planSum && j.planSum.ref ? `<div class="plannote">📎 この日は<b>PCで作り直した参考値</b>（${j.planSum.ref}R）＝今のモデル（v15）で組んだもの。</div>` : ''}
+      ${j.plan && j.planSum && j.planSum.prodOnly ? `<div class="plannote">📎 この日は凍結した確率が無い（9/10より前）ので、当時の本番の券面（旧ルール）をそのまま出しています。</div>` : ''}
       <div class="card sum ${j.plan ? 'plan' : ''}">
         <div><div class="v num">${s.buy || 0}<span class="small muted">/${s.races || 0}R</span></div><div class="k">買い</div></div>
         <div><div class="v num">${s.hit || 0}<span class="small muted">/${s.settled || 0}</span></div><div class="k">的中</div></div>
