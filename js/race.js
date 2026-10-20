@@ -100,7 +100,7 @@ const Race = {
     const pl = j.plan; if (!pl) return '';
     const now = pl.id === 'NOW';
     const SNAP = { t10: '締切10分前', pre: '締切2時間前（暫定）', open: '発売開始時（暫定）' };
-    const title = now ? '買い目（今の買い目v7.1で組み直し）' : `🔬 ${U.esc(pl.name)}の買い目`;
+    const title = now ? '買い目（今の買い目v7.2で組み直し）' : `🔬 ${U.esc(pl.name)}の買い目`;
     if (!pl.set) return `<div class="card plancard"><h2>${title}</h2><div class="small">${U.esc(pl.skip || '買い目なし')}</div>
       <div class="note">${now ? '今の買い目なら見送りになるレース。' : '検証中の案（実際には買っていない）。途中の数字では判断しない。'}</div></div>`;
     const resK = j.res ? j.res.k : null, s = pl.settle;
@@ -110,11 +110,11 @@ const Race = {
       <td class="r num">${U.num(x.stake)}円<div class="small muted">${U.odds(x.odds)}→${U.num(x.stake * x.odds)}円</div></td>
       <td class="r num">${U.pct(x.p, 2)}</td><td class="r num">${x.mk != null ? U.pct(x.mk, 2) : '—'}</td></tr>`).join('');
     return `<div class="card plancard"><h2>${title}</h2>
-      <div class="row" style="flex-wrap:wrap;gap:6px"><span class="badge buy">買い ${pl.set.length}点</span>${now ? '<span class="badge grade">スジ×3着・1的中3,000円（v7.1）</span>' : ''}${pl.ref ? '<span class="badge grade">参考</span>' : ''}${pl.tentative ? '<span class="badge grade">暫定</span>' : ''}${verdict}</div>
+      <div class="row" style="flex-wrap:wrap;gap:6px"><span class="badge buy">買い ${pl.set.length}点</span>${now ? '<span class="badge grade">スジ×3着・1的中3,000円（v7.2）</span>' : ''}${pl.ref ? '<span class="badge grade">参考</span>' : ''}${pl.tentative ? '<span class="badge grade">暫定</span>' : ''}${verdict}</div>
       ${pl.ref ? '<div class="small muted" style="margin-top:4px">📎 PCで作り直した参考値（今のモデルv15で組んだもの・当時の本番モデルとは別）</div>' : ''}
       <div class="kv" style="margin-top:6px"><span class="k">投資</span><span class="num">${U.yen(inv)}</span>${pl.gousei != null ? `<span class="k">合成</span><span class="num">${(+pl.gousei).toFixed(2)}倍</span>` : ''}</div>
       <table style="margin-top:6px"><thead><tr><th>目</th><th class="r">金額／オッズ</th><th class="r">モデル</th><th class="r">市場</th></tr></thead><tbody>${rows}</tbody></table>
-      <div class="note">${now ? `凍結した確率と${SNAP[pl.snap] || pl.snap}のオッズで、今の買い目v7.1（スジ×3着・賭金＝3,000÷オッズ・100円未満の目は買わない）に組み直したもの。当時の本番の券面（旧ルール）は出しません。`
+      <div class="note">${now ? `凍結した確率と${SNAP[pl.snap] || pl.snap}のオッズで、今の買い目v7.2（スジ×3着・賭金＝3,000÷オッズ・100円未満の目は買わない・固いゲート無し）に組み直したもの。当時の本番の券面（旧ルール）は出しません。`
         : `検証中の案（実際には買っていない）。オッズは${SNAP[pl.snap] || pl.snap}時点で組んだもの。下の「買い目」は本番の券面です。`}</div></div>`;
   },
 
