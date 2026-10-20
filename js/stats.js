@@ -87,6 +87,8 @@ const Stats = {
   /** 検証中の買い方との比較（2026-10-15 Naoto「成績タブにもABD入れれない？」）
    *  出どころ＝PCの kaikata.js（7車男子・締切10分前のオッズで選び確定払戻で精算）。基準＝今の買い方を同じ土俵で計算し直したもの */
   planCard(s, rg) {
+    return '';   // 2026-10-20 §6.169「モデルは1本」＝検証中の買い方との比較は廃止（Bは本番の買い目v6に取り込んだ）。以下は旧コード＝呼ばれない
+    // eslint-disable-next-line no-unreachable
     const days = (s.plansDaily || []).filter(d => d.date >= rg.from && (!rg.to || d.date <= rg.to));
     if (!days.length) return '';
     const NAMES = [['base', '基準（今の買い方）'], ['A', 'A 人気目を外す'], ['B', 'B スジ×3着に寄せる'], ['D', 'D ズレの大きいレースだけ'], ['E', 'E 番手3点上の押し切り（モデルなし・1R 3,000円）'], ['E2', 'E2 同じ目を1的中1万円の変動額で']];
