@@ -148,12 +148,27 @@ const Race = {
       ${post && post.length ? '<div class="note">本人の言葉は後知恵を含みます。「何が足りなかったか」の候補として読む。</div>' : ''}</div>`;
   },
 
+  /** k（'x-y-z'）がスジ×3着か＝先頭→同ライン番手→（同ライン3番手 or 別ライン（2車以上）の先頭）。本番 bets.js isSujiR と同じ判定（表示用の写し） */
+  isSuji(k, lines) {
+    const at = {}; (lines || []).filter(g => g.length).forEach((g, i) => g.forEach((n, p) => { at[n] = { li: i, pos: p, size: g.length }; }));
+    const [x, y, z] = k.split('-').map(Number), A = at[x], B = at[y], C = at[z];
+    if (!A || !B || !C || A.size < 2 || A.pos !== 0 || B.li !== A.li || B.pos !== 1 || C.size < 2) return false;
+    return (C.li === A.li && C.pos === 2) || (C.li !== A.li && C.pos === 0);
+  },
+
   predCard(p, odds, resK, snap, lines, riders) {
     if (!p) return `<div class="card muted">このレースの予想はまだありません（オッズが出そろうと作られます）</div>`;
-    const head = p.buy
-      ? `<span class="badge buy">買い ${p.combos.length}点</span> <span class="badge grade">自信度 ${U.esc(p.grade)}</span>`
-      : `<span class="badge skip">見送り</span> <span class="small muted">${U.esc(p.why)}</span>`;
     const hasLines = lines.some(g => g.length >= 2);
+    // 買い目v6（2026-10-20 10:36〜・§6.169）＝7車男子はスジ×3着だけ。並びと買い目から判定して印を出す（それより前の券面は番手差し等を含む＝旧ルール）
+    let ruleBadge = '';
+    if (p.buy && hasLines && (riders || []).length === 7) {
+      const allSuji = p.combos.every(k => Race.isSuji(k, lines));
+      ruleBadge = allSuji ? ' <span class="badge grade" title="買い目v6＝スジ×3着だけを候補にする（10/20〜）">スジ×3着（v6）</span>'
+        : ' <span class="badge skip" title="10/20 10:36より前に組んだ券面＝旧ルール（番手差し・別線2着も候補）">旧ルールの券面</span>';
+    }
+    const head = p.buy
+      ? `<span class="badge buy">買い ${p.combos.length}点</span> <span class="badge grade">自信度 ${U.esc(p.grade)}</span>${ruleBadge}`
+      : `<span class="badge skip">見送り</span> <span class="small muted">${U.esc(p.why)}</span>`;
     const mode = hasLines ? U.get('kai_sort', 'ketchaku') : 'model';
     let keys = (p.buy ? p.combos : (p.nogate && p.nogate.combos) || []).slice();
     if (mode === 'ketchaku') keys = Race.sortByKetchaku(keys, lines);
