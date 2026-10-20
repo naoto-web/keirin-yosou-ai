@@ -92,11 +92,22 @@ const Stats = {
       </div>
       <div class="card"><div class="kv"><span class="k">観測の進み</span><span class="num">的中 ${oh}/50本（10/21〜${obs.length}日）${oh >= 50 ? '＝読める' : '＝まだ読まない'}</span>
         <span class="k">対象→買い</span><span class="num">${sum('races')}R → ${bought}R（荒れ予測で見送り ${sum('skipped')}R）</span></div></div>`;
-    const table = `<div class="card"><h2>日別</h2><table><thead><tr><th>日付</th><th class="r">買い/対象</th><th class="r">的中</th><th class="r">投資</th><th class="r">回収率</th></tr></thead><tbody>
-      ${mr.slice().reverse().map(r => `<tr><td><a href="#/day/${r.date}">${U.dateLabel(r.date)}</a>${r.date < '20261021' ? '<span class="small muted"> 参考</span>' : ''}</td><td class="r num">${r.bought}/${r.races}</td><td class="r num">${r.hit}</td><td class="r num">${U.num(r.invest)}</td>
+    // 万車のレースを当てているか（2026-10-20 Naoto「そもそも万車のレースを当てられているのか、っていう情報もほしい」）＝レース選別の精度。目の的中とは別
+    const man = sum('man'), manSkip = sum('manSkip'), manAll = sum('manAll'), skipped = sum('skipped'), races = sum('races');
+    const hasMan = mr.some(r => r.man != null);
+    const selCard = hasMan ? `<div class="card manshacard"><h2>万車のレースを当てているか</h2>
+      <table><thead><tr><th></th><th class="r">レース</th><th class="r">万車が来た</th><th class="r">万車率</th></tr></thead><tbody>
+        <tr><td>買った（荒れ予測≥しきい値）</td><td class="r num">${bought}</td><td class="r num">${man}</td><td class="r num"><b>${U.pct(bought ? man / bought : null, 1)}</b></td></tr>
+        <tr><td>見送った（荒れ予測＜しきい値）</td><td class="r num">${skipped}</td><td class="r num">${manSkip}</td><td class="r num">${U.pct(skipped ? manSkip / skipped : null, 1)}</td></tr>
+        <tr class="grp"><td>7車男子 全体</td><td class="r num">${races}</td><td class="r num">${manAll}</td><td class="r num">${U.pct(races ? manAll / races : null, 1)}</td></tr>
+      </tbody></table>
+      <div class="kv" style="margin-top:6px"><span class="k">万車が来た買いレースで、目まで当てた</span><span class="num">${hit}/${man}（${U.pct(man ? hit / man : null, 1)}）</span></div>
+      <div class="note">万車＝3連単の払戻1万円以上。レースの選別＝「買った側の万車率」が「見送った側」より高いほど荒れるレースを当てている（過去データの目安＝買った側 約37%・全体 27%・見送った側 約24%）。目の的中＝万車が来ても、その目が10点に入るとは限らない（過去データの目安＝約20%）。</div></div>` : '';
+    const table = `<div class="card"><h2>日別</h2><table><thead><tr><th>日付</th><th class="r">買い/対象</th><th class="r">万車</th><th class="r">的中</th><th class="r">投資</th><th class="r">回収率</th></tr></thead><tbody>
+      ${mr.slice().reverse().map(r => `<tr><td><a href="#/day/${r.date}">${U.dateLabel(r.date)}</a>${r.date < '20261021' ? '<span class="small muted"> 参考</span>' : ''}</td><td class="r num">${r.bought}/${r.races}</td><td class="r num">${r.man != null ? r.man : '—'}</td><td class="r num">${r.hit}</td><td class="r num">${U.num(r.invest)}</td>
         <td class="r num">${U.pct(r.invest ? r.ret / r.invest : null, 1)}</td></tr>`).join('')}
-      </tbody></table><div class="note">日付をタップすると、その日の一覧を万車モデルで開きます。</div></div>`;
-    return head + sumCard + Stats.chartCard(mr) + table;
+      </tbody></table><div class="note">「万車」＝買ったレースのうち万車（払戻1万円以上）が来た数。日付をタップすると、その日の一覧を万車モデルで開きます。</div></div>`;
+    return head + sumCard + selCard + Stats.chartCard(mr) + table;
   },
 
   /** 案の日別を、本番の日次（daily_digest）と同じ形に読み替える＝小計・グラフ・日別表をそのまま使うため */
