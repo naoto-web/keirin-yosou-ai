@@ -23,7 +23,7 @@ const Race = {
       ${Race.resultCard(j, lines)}
       ${Race.planCard(j, lines)}
       ${Race.reviewCard(j, d)}
-      <div id="predcard">${Race.predCard(p, odds, resK, j.oddsSnap, lines, j.riders)}</div>
+      ${j.plan && j.plan.id === 'NOW' ? '' : `<div id="predcard">${Race.predCard(p, odds, resK, j.oddsSnap, lines, j.riders)}</div>`}
       ${Race.scenCard(p)}
       ${Race.riderCard(j.riders)}`;
     // 並べ方の切り替え（決着順／モデル順）＝買い目のカードだけ描き直す
@@ -94,24 +94,27 @@ const Race = {
     return r ? String(r.name || '').trim().split(/[\s　]+/)[0] : '';
   },
 
-  /** 検証中の案の買い目（2026-10-14・§6.163.1）＝本番の凍結確率×オッズのスナップでAPIがその場で組んだもの。実際には買っていない */
+  /** 10/21より前の日＝今の買い目（v7）で組み直した券面（2026-10-20 §6.169.1）。本番の凍結確率×オッズのスナップでAPIがその場で組む。
+   *  当時の本番の券面（旧ルール）は出さない（2026-10-20 Naoto「残す必要ない」＝predCard を出さない）。検証中の案（A/B/D）の表示は旧コード＝今は呼ばれない */
   planCard(j, lines) {
     const pl = j.plan; if (!pl) return '';
-    const v6 = pl.id === 'V6';   // 2026-10-20＝10/20以前の日を今の買い目v6（スジ×3着）で組み直したもの。当時の本番（旧ルール）は下の「買い目」
+    const now = pl.id === 'NOW';
     const SNAP = { t10: '締切10分前', pre: '締切2時間前（暫定）', open: '発売開始時（暫定）' };
-    const title = v6 ? '買い目（今の買い目v6で組み直し）' : `🔬 ${U.esc(pl.name)}の買い目`;
+    const title = now ? '買い目（今の買い目v7で組み直し）' : `🔬 ${U.esc(pl.name)}の買い目`;
     if (!pl.set) return `<div class="card plancard"><h2>${title}</h2><div class="small">${U.esc(pl.skip || '買い目なし')}</div>
-      <div class="note">${v6 ? 'v6なら見送りになるレース。下の「買い目」は当時の本番の券面（旧ルール）。' : '検証中の案（実際には買っていない）。途中の数字では判断しない。'}</div></div>`;
+      <div class="note">${now ? '今の買い目なら見送りになるレース。' : '検証中の案（実際には買っていない）。途中の数字では判断しない。'}</div></div>`;
     const resK = j.res ? j.res.k : null, s = pl.settle;
-    const verdict = s ? (s.hit ? `<span class="badge hit">的中 ${U.yen(s.ret)}（投資 ${U.yen(3000)}）</span>` : `<span class="badge miss">外れ（投資 ${U.yen(3000)}）</span>`) : '';
+    const inv = pl.stake || pl.set.reduce((t, x) => t + (x.stake || 0), 0);   // v7＝1Rの投資額は券面の合計
+    const verdict = s ? (s.hit ? `<span class="badge hit">的中 ${U.yen(s.ret)}（投資 ${U.yen(inv)}）</span>` : `<span class="badge miss">外れ（投資 ${U.yen(inv)}）</span>`) : '';
     const rows = pl.set.map(x => `<tr class="${x.k === resK ? 'hitrow' : ''}"><td>${U.comboHtml(x.k, true)}<div class="kinds">${U.kindHtml(x.k, lines)}</div></td>
       <td class="r num">${U.num(x.stake)}円<div class="small muted">${U.odds(x.odds)}→${U.num(x.stake * x.odds)}円</div></td>
       <td class="r num">${U.pct(x.p, 2)}</td><td class="r num">${x.mk != null ? U.pct(x.mk, 2) : '—'}</td></tr>`).join('');
     return `<div class="card plancard"><h2>${title}</h2>
-      <div class="row" style="flex-wrap:wrap;gap:6px"><span class="badge buy">買い ${pl.set.length}点</span>${v6 ? '<span class="badge grade">スジ×3着（v6）</span>' : ''}${pl.ref ? '<span class="badge grade">参考</span>' : ''}${pl.tentative ? '<span class="badge grade">暫定</span>' : ''}${verdict}</div>
+      <div class="row" style="flex-wrap:wrap;gap:6px"><span class="badge buy">買い ${pl.set.length}点</span>${now ? '<span class="badge grade">スジ×3着・1的中6,000円（v7）</span>' : ''}${pl.ref ? '<span class="badge grade">参考</span>' : ''}${pl.tentative ? '<span class="badge grade">暫定</span>' : ''}${verdict}</div>
       ${pl.ref ? '<div class="small muted" style="margin-top:4px">📎 PCで作り直した参考値（今のモデルv15で組んだもの・当時の本番モデルとは別）</div>' : ''}
+      <div class="kv" style="margin-top:6px"><span class="k">投資</span><span class="num">${U.yen(inv)}</span>${pl.gousei != null ? `<span class="k">合成</span><span class="num">${(+pl.gousei).toFixed(2)}倍</span>` : ''}</div>
       <table style="margin-top:6px"><thead><tr><th>目</th><th class="r">金額／オッズ</th><th class="r">モデル</th><th class="r">市場</th></tr></thead><tbody>${rows}</tbody></table>
-      <div class="note">${v6 ? `当時の本番は旧ルール（番手差し等も候補）だったので、凍結した確率と${SNAP[pl.snap] || pl.snap}のオッズで今の買い目v6に組み直したもの。下の「買い目」が当時の本番の券面。`
+      <div class="note">${now ? `凍結した確率と${SNAP[pl.snap] || pl.snap}のオッズで、今の買い目v7（スジ×3着・賭金＝6,000÷オッズ）に組み直したもの。当時の本番の券面（旧ルール）は出しません。`
         : `検証中の案（実際には買っていない）。オッズは${SNAP[pl.snap] || pl.snap}時点で組んだもの。下の「買い目」は本番の券面です。`}</div></div>`;
   },
 
@@ -162,15 +165,9 @@ const Race = {
   predCard(p, odds, resK, snap, lines, riders) {
     if (!p) return `<div class="card muted">このレースの予想はまだありません（オッズが出そろうと作られます）</div>`;
     const hasLines = lines.some(g => g.length >= 2);
-    // 買い目v6（2026-10-20 10:36〜・§6.169）＝7車男子はスジ×3着だけ。並びと買い目から判定して印を出す（それより前の券面は番手差し等を含む＝旧ルール）
-    let ruleBadge = '';
-    if (p.buy && hasLines && (riders || []).length === 7) {
-      const allSuji = p.combos.every(k => Race.isSuji(k, lines));
-      ruleBadge = allSuji ? ' <span class="badge grade" title="買い目v6＝スジ×3着だけを候補にする（10/20〜）">スジ×3着（v6）</span>'
-        : ' <span class="badge skip" title="10/20 10:36より前に組んだ券面＝旧ルール（番手差し・別線2着も候補）">旧ルールの券面</span>';
-    }
+    // 2026-10-20 Naoto「旧ルールの券面はアプリで見えるように残す必要ない」＝ルールの印（スジ×3着／旧ルール）は出さない。10/21より前の日は planCard（今の買い目で組み直し）が券面
     const head = p.buy
-      ? `<span class="badge buy">買い ${p.combos.length}点</span> <span class="badge grade">自信度 ${U.esc(p.grade)}</span>${ruleBadge}`
+      ? `<span class="badge buy">買い ${p.combos.length}点</span> <span class="badge grade">自信度 ${U.esc(p.grade)}</span>`
       : `<span class="badge skip">見送り</span> <span class="small muted">${U.esc(p.why)}</span>`;
     const mode = hasLines ? U.get('kai_sort', 'ketchaku') : 'model';
     let keys = (p.buy ? p.combos : (p.nogate && p.nogate.combos) || []).slice();
