@@ -48,10 +48,14 @@ const Home = {
   },
   draw(view, r) {
     const j = Home.asPlan(r.j), d = Home.d;
-    const venue = U.get('kai_venue', 'all'), kind = U.get('kai_kind', 'all');
+    const venue = U.get('kai_venue', 'all'), kind = U.get('kai_kind', 'all'), kind3 = U.get('kai_kind3', 'all');
     const venues = (j.venues || []);
-    const s = j.sum || {};
+    // 種別のボタン（2026-10-20 Naoto「ボタンでガールズだけ・グレードだけ、と選べるように」）＝一覧も小計もその種別だけに
+    const KINDS3 = [['all', '全部'], ['7', '7車男子'], ['9', '9車（グレード）'], ['g', 'ガールズ']];
+    const kindOf = x => (x.isGirls ? 'g' : x.cars === 9 ? '9' : '7');
     let races = j.races || [];
+    if (kind3 !== 'all') races = races.filter(x => kindOf(x) === kind3);
+    const s = kind3 === 'all' ? (j.sum || {}) : Home.sumOf(races);
     if (venue !== 'all') races = races.filter(x => String(x.jo) === venue);
     if (kind === 'buy') races = races.filter(x => x.pred && x.pred.buy);
     if (kind === 'skip') races = races.filter(x => !x.pred || !x.pred.buy);
@@ -71,13 +75,13 @@ const Home = {
         : j.plan ? `<div class="plannote">🔬 <b>${U.esc(j.plan.name)}</b>（検証中の案・実際には買っていない）。7車男子だけ。</div>` : ''}
       ${j.plan && j.planSum && j.planSum.ref ? `<div class="plannote">📎 この日は<b>PCで作り直した参考値</b>（${j.planSum.ref}R）＝今のモデル（v15）で組んだもの。</div>` : ''}
       ${j.plan && j.planSum && j.planSum.prodOnly ? `<div class="plannote">📎 この日は凍結した確率が無い（9/10より前）ので、当時の本番の券面（旧ルール）をそのまま出しています。</div>` : ''}
+      <div class="chips" id="kchips3">${KINDS3.map(([k, l]) => `<span class="chip ${kind3 === k ? 'on' : ''}" data-k3="${k}">${l}</span>`).join('')}</div>
       <div class="card sum ${j.plan ? 'plan' : ''}">
         <div><div class="v num">${s.buy || 0}<span class="small muted">/${s.races || 0}R</span></div><div class="k">買い</div></div>
         <div><div class="v num">${s.hit || 0}<span class="small muted">/${s.settled || 0}</span></div><div class="k">的中</div></div>
         <div><div class="v num">${U.num(s.ret)}</div><div class="k">回収／投資 ${U.num(s.stake)}</div></div>
         <div><div class="v num">${rr == null ? '—' : U.pct(rr, 1)}</div><div class="k">回収率</div></div>
       </div>
-      ${Home.kindLine(j)}
       <div class="chips" id="vchips">
         <span class="chip ${venue === 'all' ? 'on' : ''}" data-v="all">時刻順</span>
         ${venues.map(v => `<span class="chip ${venue === String(v.jo) ? 'on' : ''}" data-v="${U.esc(v.jo)}">${U.esc(v.venue)}${v.grade ? ' ' + U.esc(v.grade) : ''}</span>`).join('')}
@@ -89,15 +93,15 @@ const Home = {
       <ul class="rlist">${races.map(x => Home.item(x, d)).join('') || '<li class="muted" style="padding:16px 4px">該当するレースはありません</li>'}</ul>
       <div class="note">金額は全部仮想（7車男子＝1的中3,000円の変動額・100円未満の目は買わない・1レース最大1,500円／9車・ガールズ＝1レース3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。</div>`;
     view.querySelectorAll('#pchips .chip').forEach(c => c.onclick = () => { U.set('kai_plan', c.dataset.plan); Home.render(view, Home.d); });
+    view.querySelectorAll('#kchips3 .chip').forEach(c => c.onclick = () => { U.set('kai_kind3', c.dataset.k3); Home.draw(view, r); });
     view.querySelectorAll('#vchips .chip').forEach(c => c.onclick = () => { U.set('kai_venue', c.dataset.v); Home.draw(view, r); });
     view.querySelectorAll('#kchips .chip').forEach(c => c.onclick = () => { U.set('kai_kind', c.dataset.k); Home.draw(view, r); });
   },
-  /** 種別ごとの小計（2026-10-20 Naoto「通常・ガールズ・グレードで分けて回収率を見れるように」）＝一覧の各レース（結果が出た買い）から足すだけ */
-  kindLine(j) {
-    const t = {};
-    (j.races || []).forEach(x => { if (!x.pred || !x.pred.buy || x.hit == null) return; const k = x.isGirls ? 'ガールズ' : x.cars === 9 ? '9車' : '7車'; const o = t[k] || (t[k] = { n: 0, hit: 0, stake: 0, ret: 0 }); o.n++; if (x.hit) o.hit++; o.stake += x.pred.stake || 0; o.ret += x.ret || 0; });
-    const ks = ['7車', '9車', 'ガールズ'].filter(k => t[k]); if (!ks.length) return '';
-    return `<div class="small muted num" style="margin:-4px 2px 8px">${ks.map(k => `${k} ${U.pct(t[k].stake ? t[k].ret / t[k].stake : null, 1)}（${t[k].hit}/${t[k].n}R・投資${U.num(t[k].stake)}）`).join('　')}</div>`;
+  /** 種別で絞ったときの小計（APIの sum と同じ定義＝結果が出た買いだけ投資と回収を足す） */
+  sumOf(races) {
+    const s = { races: 0, buy: 0, hit: 0, settled: 0, stake: 0, ret: 0 };
+    races.forEach(x => { s.races++; if (!x.pred || !x.pred.buy) return; s.buy++; if (x.hit == null) return; s.settled++; s.stake += x.pred.stake || 0; s.ret += x.ret || 0; if (x.hit) s.hit++; });
+    return s;
   },
   item(x, d) {
     const p = x.pred, cd = U.countdown(d, x.den);
