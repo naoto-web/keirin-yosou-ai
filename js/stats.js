@@ -47,8 +47,8 @@ const Stats = {
       ${plan ? Stats.planBody(prow, pname, s, rg) :
         (empty ? `<div class="card muted">この期間の成績はまだありません（翌朝の朝ジョブから1日ずつ増えます）。</div>` : Stats.sumCard(rows) + Stats.kindCard(rows) + Stats.chartCard(rows) + Stats.planCard(s, rg) + '<div id="gradecard"></div>' + Stats.diagCard(rows) + Stats.tableCard(rows))}
       ${Stats.weeklyCard(s.weekly)}
-      <div class="note">金額は全部仮想（7車男子＝1的中6,000円の変動額で1レース最大3,000円／9車・ガールズ＝1レース3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。<br>
-        成績は<b>全日を今のモデル（v15＋買い目v7）で計算し直した値</b>＝モデルを変えたら過去も同じモデルで引き直す（2026-10-20〜）。<br>
+      <div class="note">金額は全部仮想（7車男子＝1的中3,000円の変動額・100円未満の目は買わない・1レース最大1,500円／9車・ガールズ＝1レース3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。<br>
+        成績は<b>全日を今のモデル（v15＋買い目v7.1）で計算し直した値</b>＝モデルを変えたら過去も同じモデルで引き直す（2026-10-20〜）。<br>
         的中率と捕捉率が一緒に落ちたらモデル、的中率だけ落ちたら買い方（§6.146）。</div>`;
     view.querySelectorAll('#rchips .chip').forEach(c => c.onclick = () => { U.set('kai_range', c.dataset.r); Stats.draw(view); });
     view.querySelectorAll('#spchips .chip').forEach(c => c.onclick = () => { U.set('kai_plan', c.dataset.plan); Stats.draw(view); });
@@ -189,7 +189,7 @@ const Stats = {
         <td class="r num">${U.pct(a.races ? a.capture / a.races : null, 1)}</td></tr>`; }).join('');
     return `<div class="card"><h2>種別ごと（${n}日）</h2>
       <table><thead><tr><th>種別</th><th class="r">買い/終了</th><th class="r">的中率</th><th class="r">回収率／収支</th><th class="r">捕捉率</th></tr></thead><tbody>${trs}</tbody></table>
-      <div class="note">モデルも買い方も種別で違う（7車男子＝シナリオ木＋スジ×3着＋1的中6,000円の変動額（v7）／9車＝tree9＋1レース3,000円／ガールズ＝レーティング＋1レース3,000円）。</div></div>`;
+      <div class="note">モデルも買い方も種別で違う（7車男子＝シナリオ木＋スジ×3着＋1的中3,000円の変動額（v7.1・100円未満の目は買わない）／9車＝tree9＋1レース3,000円／ガールズ＝レーティング＋1レース3,000円）。</div></div>`;
   },
 
   /** 日別の回収率（棒）と7日移動平均（線）。同じ単位なので軸は1本。100%の線＝トントン */
