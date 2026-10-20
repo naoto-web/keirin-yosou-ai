@@ -64,6 +64,15 @@ const Home = {
 
     document.getElementById('topbar-sub').textContent = r.stale ? `⚠️通信できず・${new Date(r.at).toLocaleTimeString('ja-JP', { hour: '2-digit', minute: '2-digit' })}時点` : `更新 ${j.now ? j.now.hm : ''}`;
     const rr = s.stake ? s.ret / s.stake : null;
+    // 万車モード＝「万車のレースを当てているか」（2026-10-20 Naoto）＝結果の出た7車男子で、買った側／見送った側それぞれの万車（払戻1万円以上）の数
+    Home.isM = !!(j.plan && j.plan.id === 'MANSHA');
+    let manCard = '';
+    if (Home.isM) {
+      const done = (j.races || []).filter(x => x.res && x.cars === 7 && !x.isGirls);
+      const isMan = x => x.res.pay >= 10000, buyS = done.filter(x => x.pred && x.pred.buy), skipS = done.filter(x => !(x.pred && x.pred.buy));
+      const mb = buyS.filter(isMan).length, ms = skipS.filter(isMan).length, mh = buyS.filter(x => isMan(x) && x.hit).length;
+      if (done.length) manCard = `<div class="card small"><b>万車が来た</b>　買い ${mb}/${buyS.length}R（${U.pct(buyS.length ? mb / buyS.length : null, 0)}）・見送り ${ms}/${skipS.length}R（${U.pct(skipS.length ? ms / skipS.length : null, 0)}）・万車が来た買いレースで目まで当てた ${mh}/${mb}</div>`;
+    }
     view.innerHTML = `
       <div class="datenav">
         <a class="btn" href="#/day/${U.shiftDay(d, -1)}">◀</a>
@@ -84,6 +93,7 @@ const Home = {
         <div><div class="v num">${U.num(s.ret)}</div><div class="k">回収／投資 ${U.num(s.stake)}</div></div>
         <div><div class="v num">${rr == null ? '—' : U.pct(rr, 1)}</div><div class="k">回収率</div></div>
       </div>
+      ${manCard}
       <div class="chips" id="vchips">
         <span class="chip ${venue === 'all' ? 'on' : ''}" data-v="all">時刻順</span>
         ${venues.map(v => `<span class="chip ${venue === String(v.jo) ? 'on' : ''}" data-v="${U.esc(v.jo)}">${U.esc(v.venue)}${v.grade ? ' ' + U.esc(v.grade) : ''}</span>`).join('')}
@@ -120,7 +130,8 @@ const Home = {
     if (x.res) {
       // 2026-10-09 Naoto「一覧では着順を出さなくていい（着順だけ見てもわからない）」＝払戻と的中/外れだけ
       const jm = U.jikoMain(x.jiko);   // 2026-10-09 Naoto「なんでこんなに荒れた？→落車があったからか」が一覧で分かるように
-      right = `${jm ? `<div><span class="badge jiko">${jm}</span></div>` : ''}${inv}<div class="small muted num">払戻 ${U.yen(x.res.pay)}</div>`;
+      const man = Home.isM && x.res.pay >= 10000 ? '<span class="badge grade">万車</span> ' : '';   // 万車モード＝万車（払戻1万円以上）が来たレースに印（レース選別の答え合わせ）
+      right = `${jm ? `<div><span class="badge jiko">${jm}</span></div>` : ''}${inv}<div class="small muted num">${man}払戻 ${U.yen(x.res.pay)}</div>`;
       if (x.hit === true) right += `<div><span class="badge hit">的中 ${U.yen(x.ret)}</span></div>`;
       else if (p && p.buy) right += `<div><span class="badge miss">外れ</span></div>`;
     } else {
