@@ -12,14 +12,13 @@ const Stats = {
     Stats.draw(view);
   },
 
-  /** 期間の候補＝直近7日／現行の版／ひとつ前の版／全期間。版の区切りは ruler.js（定規を動かした日） */
+  /** 期間の候補＝直近7日／直近30日／全期間。
+   *  2026-10-20 §6.169「モデルは1本」＝過去の全日を今のモデルで計算し直す運用にしたので、版ごとの区切り（現行／前の版）は出さない */
   ranges(s) {
     const days = s.days || [], last = days.length ? days[days.length - 1].date : null;
     const out = [];
     if (last) out.push({ id: 'd7', label: '直近7日', from: U.shiftDay(last, -6), to: last });
-    const ps = (s.periods || []).slice().reverse();
-    if (ps[0]) out.push({ id: 'cur', label: `現行 ${ps[0].ver}（${U.md(ps[0].from)}〜）`, from: ps[0].from, to: null, what: ps[0].what });
-    if (ps[1]) out.push({ id: 'prev', label: `前の版 ${ps[1].ver}（${U.md(ps[1].from)}〜${U.md(ps[1].to)}）`, from: ps[1].from, to: ps[1].to, what: ps[1].what });
+    if (last) out.push({ id: 'd30', label: '直近30日', from: U.shiftDay(last, -29), to: last });
     out.push({ id: 'all', label: '全期間', from: '00000000', to: null });
     return out;
   },
@@ -27,10 +26,8 @@ const Stats = {
   draw(view) {
     const s = Stats.s;
     const ranges = Stats.ranges(s);
-    // 既定＝現行の版。ただし版を上げたばかりで0日なら直近7日（選んだものは端末に覚える）
-    const days = s.days || [], cur = ranges.find(x => x.id === 'cur');
-    const curEmpty = !cur || !days.some(d => d.date >= cur.from);
-    let rid = U.get('kai_range', curEmpty ? 'd7' : 'cur');
+    // 既定＝直近30日（選んだものは端末に覚える）
+    let rid = U.get('kai_range', 'd30');
     let rg = ranges.find(x => x.id === rid) || ranges[0];
     const rows = (s.days || []).filter(d => d.date >= rg.from && (!rg.to || d.date <= rg.to));
     // 現行の版がまだ0日（版を上げた当日）なら、その旨を出して前の版を見せる
@@ -51,6 +48,7 @@ const Stats = {
         (empty ? `<div class="card muted">この期間の成績はまだありません（翌朝の朝ジョブから1日ずつ増えます）。</div>` : Stats.sumCard(rows) + Stats.kindCard(rows) + Stats.chartCard(rows) + Stats.planCard(s, rg) + '<div id="gradecard"></div>' + Stats.diagCard(rows) + Stats.tableCard(rows))}
       ${Stats.weeklyCard(s.weekly)}
       <div class="note">金額は全部仮想（1レース約3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。<br>
+        成績は<b>全日を今のモデル（v15＋買い目v6）で計算し直した値</b>＝モデルを変えたら過去も同じモデルで引き直す（2026-10-20〜）。<br>
         的中率と捕捉率が一緒に落ちたらモデル、的中率だけ落ちたら買い方（§6.146）。</div>`;
     view.querySelectorAll('#rchips .chip').forEach(c => c.onclick = () => { U.set('kai_range', c.dataset.r); Stats.draw(view); });
     view.querySelectorAll('#spchips .chip').forEach(c => c.onclick = () => { U.set('kai_plan', c.dataset.plan); Stats.draw(view); });
