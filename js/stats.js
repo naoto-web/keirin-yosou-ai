@@ -48,7 +48,7 @@ const Stats = {
       <div class="chips" id="rchips">${ranges.map(x => `<span class="chip ${x.id === rg.id ? 'on' : ''}" data-r="${x.id}">${U.esc(x.label)}</span>`).join('')}</div>
       ${rg.what ? `<div class="note" style="margin-top:0">この版で変えたこと：${rg.what.map(U.esc).join('／')}</div>` : ''}
       ${plan ? Stats.planBody(prow, pname, s, rg) :
-        (empty ? `<div class="card muted">この期間の成績はまだありません（翌朝の朝ジョブから1日ずつ増えます）。</div>` : Stats.sumCard(rows) + Stats.chartCard(rows) + Stats.planCard(s, rg) + '<div id="gradecard"></div>' + Stats.diagCard(rows) + Stats.tableCard(rows))}
+        (empty ? `<div class="card muted">この期間の成績はまだありません（翌朝の朝ジョブから1日ずつ増えます）。</div>` : Stats.sumCard(rows) + Stats.kindCard(rows) + Stats.chartCard(rows) + Stats.planCard(s, rg) + '<div id="gradecard"></div>' + Stats.diagCard(rows) + Stats.tableCard(rows))}
       ${Stats.weeklyCard(s.weekly)}
       <div class="note">金額は全部仮想（1レース約3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。<br>
         的中率と捕捉率が一緒に落ちたらモデル、的中率だけ落ちたら買い方（§6.146）。</div>`;
@@ -174,6 +174,24 @@ const Stats = {
         <span class="k">削った目</span><span class="num">${U.yen(t.cutLoss)}<span class="small muted">（合成倍率で外した目が来た分）</span></span>
       </div>
       <div class="note">捕捉率＝来た目がモデルの上位12点に入っていた割合（見送りも含む）＝モデルそのものの物差し。</div></div>`;
+  },
+
+  /** 種別ごと（2026-10-20 Naoto「モデルが違うから7車男子・ガールズ・9車で分けて表示」）＝hansei.js --json の kinds をそのまま足す。
+   *  種別の記録は10/20（買い目v6）から＝それより前の日は持たないので、この期間に1日も無ければ出さない */
+  kindCard(rows) {
+    const t = {}; let n = 0;
+    rows.forEach(r => { if (!r.kinds) return; n++; for (const k in r.kinds) { const o = t[k] || (t[k] = { races: 0, bought: 0, skipped: 0, hit: 0, invest: 0, ret: 0, capture: 0 }); for (const f in o) o[f] += r.kinds[k][f] || 0; } });
+    if (!n) return '';
+    const ORDER = ['7車男子', '9車男子', 'ガールズ'];
+    const keys = ORDER.filter(k => t[k]).concat(Object.keys(t).filter(k => !ORDER.includes(k)));
+    const trs = keys.map(k => { const a = t[k];
+      return `<tr><td>${U.esc(k)}${k === '9車男子' ? '<div class="small muted">グレード戦</div>' : ''}</td><td class="r num">${a.bought}/${a.races}</td>
+        <td class="r num">${U.pct(a.bought ? a.hit / a.bought : null, 1)}</td>
+        <td class="r num">${U.pct(a.invest ? a.ret / a.invest : null, 1)}<div class="small muted">${a.ret - a.invest >= 0 ? '+' : ''}${U.num(a.ret - a.invest)}円</div></td>
+        <td class="r num">${U.pct(a.races ? a.capture / a.races : null, 1)}</td></tr>`; }).join('');
+    return `<div class="card"><h2>種別ごと（${n}日）</h2>
+      <table><thead><tr><th>種別</th><th class="r">買い/終了</th><th class="r">的中率</th><th class="r">回収率／収支</th><th class="r">捕捉率</th></tr></thead><tbody>${trs}</tbody></table>
+      <div class="note">モデルも買い方も種別で違う（7車男子＝シナリオ木＋スジ×3着／9車＝tree9／ガールズ＝レーティング）。種別の記録は10/20（買い目v6）から。</div></div>`;
   },
 
   /** 日別の回収率（棒）と7日移動平均（線）。同じ単位なので軸は1本。100%の線＝トントン */
