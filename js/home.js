@@ -67,7 +67,7 @@ const Home = {
       </div>
       ${d !== U.today() ? `<div style="text-align:center;margin-bottom:6px"><a class="btn small" href="#/day/${U.today()}">今日に戻る</a></div>` : ''}
       ${U.planChips('pchips')}
-      ${j.plan && j.plan.id === 'NOW' ? `<div class="plannote">🧮 この日は<b>今の買い目v7（スジ×3着・1的中6,000円の変動額）で組み直した券面</b>。7車男子は凍結した確率と締切10分前のオッズで組み直しています。9車・ガールズは当時の本番のまま（買い方は今と同じ）。</div>`
+      ${j.plan && j.plan.id === 'NOW' ? `<div class="plannote">🧮 この日は<b>今の買い目v7.1（スジ×3着・1的中3,000円・100円未満の目は買わない）で組み直した券面</b>。7車男子は凍結した確率と締切10分前のオッズで組み直しています。9車・ガールズは当時の本番のまま（買い方は今と同じ）。</div>`
         : j.plan ? `<div class="plannote">🔬 <b>${U.esc(j.plan.name)}</b>（検証中の案・実際には買っていない）。7車男子だけ。</div>` : ''}
       ${j.plan && j.planSum && j.planSum.ref ? `<div class="plannote">📎 この日は<b>PCで作り直した参考値</b>（${j.planSum.ref}R）＝今のモデル（v15）で組んだもの。</div>` : ''}
       ${j.plan && j.planSum && j.planSum.prodOnly ? `<div class="plannote">📎 この日は凍結した確率が無い（9/10より前）ので、当時の本番の券面（旧ルール）をそのまま出しています。</div>` : ''}
@@ -86,7 +86,7 @@ const Home = {
       </div>
       ${j.note ? `<div class="card muted">${U.esc(j.note)}</div>` : ''}
       <ul class="rlist">${races.map(x => Home.item(x, d)).join('') || '<li class="muted" style="padding:16px 4px">該当するレースはありません</li>'}</ul>
-      <div class="note">金額は全部仮想（7車男子＝1的中6,000円の変動額で1レース最大3,000円／9車・ガールズ＝1レース3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。</div>`;
+      <div class="note">金額は全部仮想（7車男子＝1的中3,000円の変動額・100円未満の目は買わない・1レース最大1,500円／9車・ガールズ＝1レース3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。</div>`;
     view.querySelectorAll('#pchips .chip').forEach(c => c.onclick = () => { U.set('kai_plan', c.dataset.plan); Home.render(view, Home.d); });
     view.querySelectorAll('#vchips .chip').forEach(c => c.onclick = () => { U.set('kai_venue', c.dataset.v); Home.draw(view, r); });
     view.querySelectorAll('#kchips .chip').forEach(c => c.onclick = () => { U.set('kai_kind', c.dataset.k); Home.draw(view, r); });
