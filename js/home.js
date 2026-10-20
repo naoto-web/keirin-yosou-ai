@@ -7,14 +7,14 @@ const Home = {
    *    詳細から戻ったときはスクロール位置も戻す（restore）。 */
   async render(view, d, restore) {
     d = d || U.today();
-    const plan = U.planFor(d);   // 10/20以前＝v6で組み直し（2026-10-20）
+    const plan = U.planFor(d);   // 10/20以前＝今の買い目（v7）で組み直し（2026-10-20）
     const token = Home.token = (Home.token || 0) + 1;   // 取り直している間に別画面へ移ったら描かない
     const saved = Home.d === d && Home.plan === plan && Home.data ? { j: Home.data } : U.get(plan ? `kai_day_${d}_${plan}` : 'kai_day_' + d, null);
     if (saved && saved.j) {
       Home.data = saved.j; Home.d = d; Home.plan = plan;
       Home.draw(view, { j: saved.j, stale: false });
       if (restore) window.scrollTo(0, Home.scroll || 0);
-    } else view.innerHTML = `${U.planChips('pchips0')}<div class="loading">読み込み中…${plan ? '（v6で組み直すので、初めての日は10〜20秒かかります）' : ''}</div>`;
+    } else view.innerHTML = `${U.planChips('pchips0')}<div class="loading">読み込み中…${plan ? '（今の買い目で組み直すので、初めての日は10〜20秒かかります）' : ''}</div>`;
     let r;
     try { r = await API.day(d, plan); }
     catch (e) {
@@ -67,7 +67,7 @@ const Home = {
       </div>
       ${d !== U.today() ? `<div style="text-align:center;margin-bottom:6px"><a class="btn small" href="#/day/${U.today()}">今日に戻る</a></div>` : ''}
       ${U.planChips('pchips')}
-      ${j.plan && j.plan.id === 'V6' ? `<div class="plannote">🧮 この日は<b>今の買い目v6（スジ×3着）で組み直した券面</b>。当時の本番は旧ルール（番手差し等も候補）だったので、7車男子は凍結した確率と締切10分前のオッズで組み直しています。9車・ガールズは当時の本番のまま。</div>`
+      ${j.plan && j.plan.id === 'NOW' ? `<div class="plannote">🧮 この日は<b>今の買い目v7（スジ×3着・1的中6,000円の変動額）で組み直した券面</b>。7車男子は凍結した確率と締切10分前のオッズで組み直しています。9車・ガールズは当時の本番のまま（買い方は今と同じ）。</div>`
         : j.plan ? `<div class="plannote">🔬 <b>${U.esc(j.plan.name)}</b>（検証中の案・実際には買っていない）。7車男子だけ。</div>` : ''}
       ${j.plan && j.planSum && j.planSum.ref ? `<div class="plannote">📎 この日は<b>PCで作り直した参考値</b>（${j.planSum.ref}R）＝今のモデル（v15）で組んだもの。</div>` : ''}
       ${j.plan && j.planSum && j.planSum.prodOnly ? `<div class="plannote">📎 この日は凍結した確率が無い（9/10より前）ので、当時の本番の券面（旧ルール）をそのまま出しています。</div>` : ''}
@@ -86,7 +86,7 @@ const Home = {
       </div>
       ${j.note ? `<div class="card muted">${U.esc(j.note)}</div>` : ''}
       <ul class="rlist">${races.map(x => Home.item(x, d)).join('') || '<li class="muted" style="padding:16px 4px">該当するレースはありません</li>'}</ul>
-      <div class="note">金額は全部仮想（1レース約3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。</div>`;
+      <div class="note">金額は全部仮想（7車男子＝1的中6,000円の変動額で1レース最大3,000円／9車・ガールズ＝1レース3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。</div>`;
     view.querySelectorAll('#pchips .chip').forEach(c => c.onclick = () => { U.set('kai_plan', c.dataset.plan); Home.render(view, Home.d); });
     view.querySelectorAll('#vchips .chip').forEach(c => c.onclick = () => { U.set('kai_venue', c.dataset.v); Home.draw(view, r); });
     view.querySelectorAll('#kchips .chip').forEach(c => c.onclick = () => { U.set('kai_kind', c.dataset.k); Home.draw(view, r); });
