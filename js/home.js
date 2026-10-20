@@ -67,7 +67,7 @@ const Home = {
       </div>
       ${d !== U.today() ? `<div style="text-align:center;margin-bottom:6px"><a class="btn small" href="#/day/${U.today()}">今日に戻る</a></div>` : ''}
       ${U.planChips('pchips')}
-      ${j.plan && j.plan.id === 'NOW' ? `<div class="plannote">🧮 この日は<b>今の買い目v7.1（スジ×3着・1的中3,000円・100円未満の目は買わない）で組み直した券面</b>。7車男子は凍結した確率と締切10分前のオッズで組み直しています。9車・ガールズは当時の本番のまま（買い方は今と同じ）。</div>`
+      ${j.plan && j.plan.id === 'NOW' ? `<div class="plannote">🧮 この日は<b>今の買い目v7.2（スジ×3着・1的中3,000円・100円未満の目は買わない・固いゲート無し）で組み直した券面</b>。7車男子は凍結した確率と締切10分前のオッズで組み直しています。9車・ガールズは当時の本番のまま（買い方は今と同じ）。</div>`
         : j.plan ? `<div class="plannote">🔬 <b>${U.esc(j.plan.name)}</b>（検証中の案・実際には買っていない）。7車男子だけ。</div>` : ''}
       ${j.plan && j.planSum && j.planSum.ref ? `<div class="plannote">📎 この日は<b>PCで作り直した参考値</b>（${j.planSum.ref}R）＝今のモデル（v15）で組んだもの。</div>` : ''}
       ${j.plan && j.planSum && j.planSum.prodOnly ? `<div class="plannote">📎 この日は凍結した確率が無い（9/10より前）ので、当時の本番の券面（旧ルール）をそのまま出しています。</div>` : ''}
@@ -77,6 +77,7 @@ const Home = {
         <div><div class="v num">${U.num(s.ret)}</div><div class="k">回収／投資 ${U.num(s.stake)}</div></div>
         <div><div class="v num">${rr == null ? '—' : U.pct(rr, 1)}</div><div class="k">回収率</div></div>
       </div>
+      ${Home.kindLine(j)}
       <div class="chips" id="vchips">
         <span class="chip ${venue === 'all' ? 'on' : ''}" data-v="all">時刻順</span>
         ${venues.map(v => `<span class="chip ${venue === String(v.jo) ? 'on' : ''}" data-v="${U.esc(v.jo)}">${U.esc(v.venue)}${v.grade ? ' ' + U.esc(v.grade) : ''}</span>`).join('')}
@@ -90,6 +91,13 @@ const Home = {
     view.querySelectorAll('#pchips .chip').forEach(c => c.onclick = () => { U.set('kai_plan', c.dataset.plan); Home.render(view, Home.d); });
     view.querySelectorAll('#vchips .chip').forEach(c => c.onclick = () => { U.set('kai_venue', c.dataset.v); Home.draw(view, r); });
     view.querySelectorAll('#kchips .chip').forEach(c => c.onclick = () => { U.set('kai_kind', c.dataset.k); Home.draw(view, r); });
+  },
+  /** 種別ごとの小計（2026-10-20 Naoto「通常・ガールズ・グレードで分けて回収率を見れるように」）＝一覧の各レース（結果が出た買い）から足すだけ */
+  kindLine(j) {
+    const t = {};
+    (j.races || []).forEach(x => { if (!x.pred || !x.pred.buy || x.hit == null) return; const k = x.isGirls ? 'ガールズ' : x.cars === 9 ? '9車' : '7車'; const o = t[k] || (t[k] = { n: 0, hit: 0, stake: 0, ret: 0 }); o.n++; if (x.hit) o.hit++; o.stake += x.pred.stake || 0; o.ret += x.ret || 0; });
+    const ks = ['7車', '9車', 'ガールズ'].filter(k => t[k]); if (!ks.length) return '';
+    return `<div class="small muted num" style="margin:-4px 2px 8px">${ks.map(k => `${k} ${U.pct(t[k].stake ? t[k].ret / t[k].stake : null, 1)}（${t[k].hit}/${t[k].n}R・投資${U.num(t[k].stake)}）`).join('　')}</div>`;
   },
   item(x, d) {
     const p = x.pred, cd = U.countdown(d, x.den);
