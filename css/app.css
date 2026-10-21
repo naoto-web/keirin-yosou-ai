@@ -64,7 +64,24 @@ main { max-width: 760px; margin: 0 auto; padding: 12px 16px 40px; overflow-wrap:
 .chip { flex: none; border: 1px solid var(--line); background: var(--panel); border-radius: 999px; padding: 5px 12px; font-size: 13px; cursor: pointer; white-space: nowrap; }
 .chip.on { background: var(--accent); border-color: var(--accent); color: #fff; }
 
-/* レース一覧 */
+/* レース一覧＝1レース1行の表（2026-10-21 Naoto「縦列が合うようにしたい」）。main の左右16pxを8pxずつ食って396pxに収める */
+.rtab { width: calc(100% + 16px); margin: 4px -8px 0; table-layout: fixed; border-collapse: collapse; background: var(--panel); border-radius: 10px; overflow: hidden; font-variant-numeric: tabular-nums; font-size: 12px; }
+.rtab col.c-hm { width: 38px; } .rtab col.c-race { width: 84px; } .rtab col.c-st { width: 58px; } .rtab col.c-pts { width: 30px; }
+.rtab col.c-inv { width: 40px; } .rtab col.c-ret { width: 46px; } .rtab col.c-pl { width: 50px; } .rtab col.c-cum { width: 50px; }
+.rtab th, .rtab td { padding: 6px 3px; white-space: nowrap; overflow: hidden; border-bottom: 1px solid var(--line); vertical-align: middle; line-height: 1.3; }
+.rtab th { font-size: 10px; color: var(--muted); font-weight: 600; text-align: right; }
+.rtab th.l, .rtab td.l { text-align: left; } .rtab td.r, .rtab th.r { text-align: right; }
+.rtab td.st { font-size: 11px; letter-spacing: -0.3px; }
+.rtab td.hm.soon { color: #b45309; font-weight: 700; }
+.rtab tr[data-href] { cursor: pointer; }
+.rtab tr.hit td { background: color-mix(in srgb, #1f8a4c 12%, var(--panel)); }
+.rtab tr.hit td.pl, .rtab tr.hit td.ret { color: #1f8a4c; font-weight: 700; }
+.rtab tr.miss td.pl { color: #b4443b; }
+.rtab tr.skip td { color: #9a9a9a; }
+.rtab tr.open td.ret, .rtab tr.open td.pl { color: var(--muted); }
+.rb { display: inline-block; font-size: 9px; line-height: 13px; padding: 0 3px; border-radius: 5px; background: color-mix(in srgb, var(--muted) 18%, var(--panel)); color: var(--muted); margin-left: 2px; vertical-align: 1px; }
+.rb.man { background: #fde7c8; color: #8a4a00; } .rb.g { background: #f3e3f7; color: #7a2d8c; } .rb.jiko { background: #fbe0e0; color: #9b2c2c; }
+/* 旧＝カード型の一覧（2026-10-21 に表へ置き換え・CSSは残置） */
 .rlist { list-style: none; margin: 0; padding: 0; }
 .ritem .mid .sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ritem { display: grid; grid-template-columns: 58px minmax(0, 1fr) auto; gap: 10px; align-items: center;
