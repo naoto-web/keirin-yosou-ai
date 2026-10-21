@@ -39,6 +39,10 @@ button { font: inherit; color: inherit; }
 .card.sum.mansha, .card.manshacard { border-color: #b45309; }
 .card.manshacard h2 { color: #b45309; }
 .plannote.mansha { background: color-mix(in srgb, #b45309 12%, var(--panel)); border-color: color-mix(in srgb, #b45309 35%, transparent); }
+/* 6車男子の「もし買っていたら」（§6.179・別口・仮想）＝本線とも万車とも見分けがつく色 */
+.card.k6card { border-color: #0f766e; }
+.card.k6card h2 { color: #0f766e; }
+.plannote.k6 { background: color-mix(in srgb, #0f766e 10%, var(--panel)); border-color: color-mix(in srgb, #0f766e 35%, transparent); }
 main { max-width: 760px; margin: 0 auto; padding: 12px 16px 40px; overflow-wrap: anywhere; }
 /* 🪤グリッドの子は既定で中身の幅より縮まない＝長い見送り理由が画面幅を押し広げて右が切れた（10/9実機確認） */
 .ritem > *, .sum > *, .kv > *, .row > * { min-width: 0; }
