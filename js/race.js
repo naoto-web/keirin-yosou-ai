@@ -22,6 +22,7 @@ const Race = {
       </div>
       ${Race.resultCard(j, lines)}
       ${Race.planCard(j, lines)}
+      ${Race.k6Card(j, lines)}
       ${Race.reviewCard(j, d)}
       ${Race.honsenBelow(j, d, p, odds, resK, lines)}
       ${Race.scenCard(p)}
@@ -138,6 +139,27 @@ const Race = {
       <table style="margin-top:6px"><thead><tr><th>目</th><th class="r">金額／オッズ</th><th class="r">モデル</th><th class="r">市場</th></tr></thead><tbody>${rows}</tbody></table>
       <div class="note">${isM ? `${U.MANSHA_NOTE} オッズは${SNAP[pl.snap] || pl.snap}時点。下の「買い目」は本線の券面（別口）。` : now ? `凍結した確率と${SNAP[pl.snap] || pl.snap}のオッズで、今の買い目v7.2（スジ×3着・賭金＝3,000÷オッズ・100円未満の目は買わない・固いゲート無し）に組み直したもの。当時の本番の券面（旧ルール）は出しません。`
         : `検証中の案（実際には買っていない）。オッズは${SNAP[pl.snap] || pl.snap}時点で組んだもの。下の「買い目」は本番の券面です。`}</div></div>`;
+  },
+
+  /** 6車男子の「もし買っていたら」（本体 §6.179・2026-10-21 Naoto「6車男子は見送り。もし購入した場合は詳細で見れるように」）
+   *  ＝APIの k6 欄（凍結確率×締切10分前のオッズで組む・別口・仮想）。本線（見送り）とは混ぜない。6車男子以外は k6 が null＝何も出さない */
+  k6Card(j, lines) {
+    const k = j.k6; if (!k) return '';
+    const SNAP = { t10: '締切10分前', pre: '締切2時間前（暫定）', open: '発売開始時（暫定）' };
+    const title = '🚲 もし買っていたら（6車男子・差し×3着・別口・仮想）';
+    if (!k.set) return `<div class="card k6card"><h2>${title}</h2><div class="small">${U.esc(k.skip || '買い目なし')}</div>
+      <div class="note">本線は6車男子を買いません。${U.K6_NOTE}</div></div>`;
+    const resK = j.res ? j.res.k : null, s = k.settle;
+    const inv = k.stake || k.set.reduce((t, x) => t + (x.stake || 0), 0);
+    const verdict = s ? (s.hit ? `<span class="badge hit">もし買っていたら 的中 ${U.yen(s.ret)}（投資 ${U.yen(inv)}）</span>` : `<span class="badge miss">もし買っていたら 外れ（投資 ${U.yen(inv)}）</span>`) : '';
+    const rows = k.set.map(x => `<tr class="${x.k === resK ? 'hitrow' : ''}"><td>${U.comboHtml(x.k, true)}<div class="kinds">${U.kindHtml(x.k, lines)}</div></td>
+      <td class="r num">${U.num(x.stake)}円<div class="small muted">${U.odds(x.odds)}→${U.num(x.stake * x.odds)}円</div></td>
+      <td class="r num">${U.pct(x.p, 2)}</td><td class="r num">${x.mk != null ? U.pct(x.mk, 2) : '—'}</td></tr>`).join('');
+    return `<div class="card k6card"><h2>${title}</h2>
+      <div class="row" style="flex-wrap:wrap;gap:6px"><span class="badge buy">仮想 ${k.set.length}点</span>${k.tentative ? '<span class="badge grade">暫定</span>' : ''}${verdict}</div>
+      <div class="kv" style="margin-top:6px"><span class="k">投資</span><span class="num">${U.yen(inv)}</span></div>
+      <table style="margin-top:6px"><thead><tr><th>目</th><th class="r">金額／オッズ</th><th class="r">モデル</th><th class="r">市場</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="note">本線は6車男子を買いません（この券面は成績タブの「6車（仮想）」にだけ数えます）。オッズは${SNAP[k.snap] || k.snap}時点。${U.K6_NOTE}</div></div>`;
   },
 
   /** 3.3 振り返り＝診断（どこが悪かったか）・ズレの座標・選手のレース後コメント（2026-10-09 段2）
