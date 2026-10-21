@@ -41,7 +41,8 @@ const Home = {
       races: (j.races || []).map(x => {
         const pl = x.plan || { buy: false, why: '' };
         return Object.assign({}, x, {
-          pred: pl.buy ? { buy: true, n: pl.n, stake: pl.stake, grade: pl.prod ? (x.pred && x.pred.grade) || '' : (pl.ref ? '参考' : (pl.tentative ? '暫定' : (isM ? '万車' : ''))) } : { buy: false, why: pl.why || '' },
+          // 予想そのものが無いレース＝「見送り・予想なし」ではなく「予想なし」のバッジ（2026-10-21）
+          pred: pl.buy ? { buy: true, n: pl.n, stake: pl.stake, grade: pl.prod ? (x.pred && x.pred.grade) || '' : (pl.ref ? '参考' : (pl.tentative ? '暫定' : (isM ? '万車' : ''))) } : (pl.why === '予想なし' ? null : { buy: false, why: pl.why || '' }),
           hit: pl.buy ? pl.hit : null, ret: pl.buy ? pl.ret : null
         });
       })
@@ -85,7 +86,7 @@ const Home = {
         : j.plan && j.plan.id === 'NOW' ? `<div class="plannote">🧮 この日は<b>今の買い目v7.2（スジ×3着・1的中3,000円・100円未満の目は買わない・固いゲート無し）で組み直した券面</b>。7車男子は凍結した確率と締切10分前のオッズで組み直しています。9車・ガールズは当時の本番のまま（買い方は今と同じ）。</div>`
         : j.plan ? `<div class="plannote">🔬 <b>${U.esc(j.plan.name)}</b>（検証中の案・実際には買っていない）。7車男子だけ。</div>` : ''}
       ${j.plan && j.planSum && j.planSum.ref ? `<div class="plannote">📎 この日は<b>PCで作り直した参考値</b>（${j.planSum.ref}R）＝今のモデル（v15）で組んだもの。</div>` : ''}
-      ${j.plan && j.planSum && j.planSum.prodOnly ? `<div class="plannote">📎 この日は凍結した確率が無い（9/10より前）ので、当時の本番の券面（旧ルール）をそのまま出しています。</div>` : ''}
+      ${j.plan && j.planSum && j.planSum.prodOnly ? `<div class="plannote">📎 この日は全通りの確率を保存していない予想が${j.planSum.prodOnly}Rあります（全通りの保存は10/9の昼以降）。そのレースだけは組み直せないので、当時の本番の券面をそのまま出しています。</div>` : ''}
       <div class="chips" id="kchips3">${KINDS3.map(([k, l]) => `<span class="chip ${kind3 === k ? 'on' : ''}" data-k3="${k}">${l}</span>`).join('')}</div>
       <div class="card sum ${j.plan && j.plan.id === 'MANSHA' ? 'mansha' : j.plan ? 'plan' : ''}">
         <div><div class="v num">${s.buy || 0}<span class="small muted">/${s.races || 0}R</span></div><div class="k">買い</div></div>
