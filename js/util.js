@@ -33,6 +33,10 @@ const U = {
 
   /** 並び文字列（例 "123 45 6 7"）→ ライン配列 */
   parseNarabi(s) { return String(s || '').trim().split(/\s+/).filter(Boolean).map(g => g.replace(/[^0-9]/g, '').split('').map(Number)); },
+  /** ライン構造（例 "3:2:2"）＝2車以上のラインの車数を大きい順・単騎は1（hansei.js structOf と同じ定義）。ラインが無ければ '—' */
+  structOf(narabi) { const g = U.parseNarabi(narabi).map(x => x.length); const L = g.filter(n => n >= 2); if (!L.length) return '—'; return L.sort((a, b) => b - a).concat(g.filter(n => n === 1)).join(':'); },
+  /** 金額の短い表記（円なし・▲＝マイナス）＝今日タブの1行表示用（2026-10-21 Naoto） */
+  money(v) { if (v == null || isNaN(v)) return '—'; const a = Math.round(Math.abs(v)).toLocaleString('ja-JP'); return v < 0 ? '▲' + a : a; },
   carHtml(n) { return `<span class="car c${n}">${n}</span>`; },
   /** 目（"1-9-5"）を車番の色バッジで（ハイフンなし）。small＝表の中用の小さめ */
   comboHtml(k, small) { return `<span class="combo${small ? ' sm' : ''}">${String(k).split('-').map(n => `<span class="car c${n}">${n}</span>`).join('')}</span>`; },
