@@ -103,10 +103,11 @@ const Home = {
         ${[['all', '全部'], ['buy', '買い'], ['skip', '見送り'], ['open', '結果待ち']].map(([k, l]) => `<span class="chip ${kind === k ? 'on' : ''}" data-k="${k}">${l}</span>`).join('')}
       </div>
       ${j.note ? `<div class="card muted">${U.esc(j.note)}</div>` : ''}
-      <ul class="rlist">${races.map(x => Home.item(x, d)).join('') || '<li class="muted" style="padding:16px 4px">該当するレースはありません</li>'}</ul>
+      ${Home.table(races, d)}
       ${j.plan && j.plan.id === 'MANSHA'
         ? '<div class="note">万車モデル＝金額は全部仮想（1点100円×最大10点・締切10分前のオッズで選び確定払戻で精算）。本線の券面は上の切替で「本線」。的中50本たまるまで数字は読まない（本体 §6.176.5）。</div>'
         : '<div class="note">金額は全部仮想（7車男子＝1的中3,000円の変動額・100円未満の目は買わない・1レース最大1,500円／9車・ガールズ＝1レース3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。</div>'}`;
+    view.querySelectorAll('tr[data-href]').forEach(tr => tr.onclick = () => { location.hash = tr.dataset.href; });
     view.querySelectorAll('#pchips .chip').forEach(c => c.onclick = () => { U.set('kai_plan', c.dataset.plan); Home.render(view, Home.d); });
     view.querySelectorAll('#kchips3 .chip').forEach(c => c.onclick = () => { U.set('kai_kind3', c.dataset.k3); Home.draw(view, r); });
     view.querySelectorAll('#vchips .chip').forEach(c => c.onclick = () => { U.set('kai_venue', c.dataset.v); Home.draw(view, r); });
@@ -118,31 +119,34 @@ const Home = {
     races.forEach(x => { s.races++; if (!x.pred || !x.pred.buy) return; s.buy++; if (x.hit == null) return; s.settled++; s.stake += x.pred.stake || 0; s.ret += x.ret || 0; if (x.hit) s.hit++; });
     return s;
   },
-  item(x, d) {
-    const p = x.pred, cd = U.countdown(d, x.den);
-    const soon = cd && /^あと\d+分$/.test(cd) && +cd.replace(/\D/g, '') <= 15;
-    let badge;
-    if (!p) badge = `<span class="badge st">予想なし</span>`;
-    else if (p.buy) badge = `<span class="badge buy">買い ${p.n}点</span> <span class="badge grade">${U.esc(p.grade || '')}</span>`;
-    else badge = `<span class="badge skip">見送り</span>`;
-    let right = '';
-    // 2026-10-20 Naoto「投資額が3,000円一定じゃなくなったから払戻の上に投資額も入れて」＝買い目v7（7車男子は1Rの投資額が変わる）
-    const inv = p && p.buy && p.stake ? `<div class="small muted num">投資 ${U.yen(p.stake)}</div>` : '';
-    if (x.res) {
-      // 2026-10-09 Naoto「一覧では着順を出さなくていい（着順だけ見てもわからない）」＝払戻と的中/外れだけ
-      const jm = U.jikoMain(x.jiko);   // 2026-10-09 Naoto「なんでこんなに荒れた？→落車があったからか」が一覧で分かるように
-      const man = Home.isM && x.res.pay >= 10000 ? '<span class="badge grade">万車</span> ' : '';   // 万車モード＝万車（払戻1万円以上）が来たレースに印（レース選別の答え合わせ）
-      right = `${jm ? `<div><span class="badge jiko">${jm}</span></div>` : ''}${inv}<div class="small muted num">${man}払戻 ${U.yen(x.res.pay)}</div>`;
-      if (x.hit === true) right += `<div><span class="badge hit">的中 ${U.yen(x.ret)}</span></div>`;
-      else if (p && p.buy) right += `<div><span class="badge miss">外れ</span></div>`;
-    } else {
-      right = `<span class="badge st">${U.stLabel[x.st] || ''}</span>${inv}`;
-    }
-    const why = p && !p.buy && p.why ? `・${U.esc(String(p.why).slice(0, 18))}` : '';
-    return `<li><a class="ritem ${p && p.buy ? '' : 'skip'}" href="#/race/${d}/${x.jo}/${x.no}">
-      <div class="t"><div class="hm num">${U.esc(x.den || x.start || '')}</div><div class="cd ${soon ? 'soon' : ''}">${cd || (x.st === 'result' ? '' : U.stLabel[x.st] || '')}</div></div>
-      <div class="mid"><div class="ttl">${U.esc(x.venue)} ${x.no}R ${x.isGirls ? '<span class="badge girls">G</span>' : ''}</div>
-        <div class="sub">${U.esc(x.cls)}・${x.cars}車${why}</div><div style="margin-top:3px">${badge}</div></div>
-      <div class="right">${right}</div></a></li>`;
+  /** 1レース1行の表（2026-10-21 Naoto「08:27/青森1R/3:2:2/1点/投400円/回0円/▲400円/累▲400円」・縦列をそろえる）
+   *  列＝時刻／レース（印＝G・9・万・落/失）／構造／点／投資／回収／収支／累計。累計＝表示している行を時刻順に足した収支（結果の出た買いだけ）。
+   *  行は的中＝緑・外れ＝収支が赤・見送り＝灰・結果待ち＝「…」。行をタップでレース詳細。万車モードでは投資・回収が万車枠の数字になる（asPlan で読み替え済み） */
+  table(races, d) {
+    if (!races.length) return '<div class="card muted">該当するレースはありません</div>';
+    let cum = 0;
+    const rows = races.map(x => {
+      const p = x.pred, buy = !!(p && p.buy), settled = buy && x.hit != null;
+      const inv = buy ? (p.stake || 0) : 0, ret = settled ? (x.ret || 0) : null, pl = settled ? ret - inv : null;
+      if (settled) cum += pl;
+      const cls = settled ? (x.hit ? 'hit' : 'miss') : buy ? 'open' : 'skip';
+      const cd = U.countdown(d, x.den), soon = cd && /^あと\d+分$/.test(cd) && +cd.replace(/\D/g, '') <= 15;
+      const jm = U.jikoMain(x.jiko);
+      const marks = `${x.isGirls ? '<span class="rb g">G</span>' : x.cars === 9 ? '<span class="rb">9</span>' : ''}${x.res && x.res.pay >= 10000 ? '<span class="rb man">万</span>' : ''}${jm ? `<span class="rb jiko">${jm.slice(0, 1)}</span>` : ''}`;
+      return `<tr class="${cls}" data-href="#/race/${d}/${x.jo}/${x.no}">
+        <td class="l hm ${soon ? 'soon' : ''}">${U.esc(x.den || x.start || '')}</td>
+        <td class="l race">${U.esc(x.venue)}${x.no}R${marks}</td>
+        <td class="l st">${x.isGirls ? '—' : U.structOf(x.narabi)}</td>
+        <td class="r">${buy ? p.n + '点' : (p ? '見送' : '—')}</td>
+        <td class="r">${buy ? U.num(inv) : '—'}</td>
+        <td class="r ret">${settled ? U.num(ret) : (buy ? '…' : '—')}</td>
+        <td class="r pl">${settled ? U.money(pl) : (buy ? '…' : '—')}</td>
+        <td class="r cum">${settled ? U.money(cum) : ''}</td></tr>`;
+    }).join('');
+    return `<table class="rtab">
+      <colgroup><col class="c-hm"><col class="c-race"><col class="c-st"><col class="c-pts"><col class="c-inv"><col class="c-ret"><col class="c-pl"><col class="c-cum"></colgroup>
+      <thead><tr><th class="l">時刻</th><th class="l">レース</th><th class="l">構造</th><th class="r">点</th><th class="r">投資</th><th class="r">回収</th><th class="r">収支</th><th class="r">累計</th></tr></thead>
+      <tbody>${rows}</tbody></table>
+      <div class="note">構造＝並びの車数（大きい順・1＝単騎）。点＝買い目の点数（見送＝見送り）。投資・回収・収支＝円（▲＝マイナス）。累計＝表示している行を時刻順に足した収支（結果の出た買いだけ）。「…」＝結果待ち。印＝G ガールズ・9 9車・万 万車（払戻1万円以上）・落/失 事故。行をタップで詳細。</div>`;
   }
 };
