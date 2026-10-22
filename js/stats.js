@@ -74,6 +74,7 @@ const Stats = {
     view.querySelectorAll('#kchips2 .chip').forEach(c => c.onclick = () => { U.set('kai_kind2', c.dataset.k); Stats.draw(view); });
     view.querySelectorAll('#spchips .chip').forEach(c => c.onclick = () => { U.set('kai_plan', c.dataset.plan); Stats.draw(view); });
     Stats.bindChart(view);
+    view.querySelectorAll('.dtab tr[data-href]').forEach(tr => tr.onclick = () => { location.hash = tr.dataset.href; });
     if (!plan && kind === 'all') Stats.loadGrades(view, rg);
   },
 
@@ -357,11 +358,23 @@ const Stats = {
       <div class="note">仕分けは原因ではありません。同じ型がたまってから測って決めます（1レースずつ直さない）。</div></div>`;
   },
 
+  /** 日別＝1日1行（2026-10-22 Naoto「買い・的中・投資・回収・回収率・収支がずらっと並んで見える」）
+   *  今日タブの1行表（home.js table）と同じ作り＝列幅固定・円なし・▲＝マイナス。新しい日が上・最下行に期間の合計。行をタップでその日の一覧 */
   tableCard(rows) {
-    return `<div class="card"><h2>日別</h2><table><thead><tr><th>日付</th><th class="r">買い</th><th class="r">的中</th><th class="r">回収率</th><th class="r">捕捉率</th></tr></thead><tbody>
-      ${rows.slice().reverse().map(r => `<tr><td><a href="#/day/${r.date}">${U.dateLabel(r.date)}</a></td><td class="r num">${r.bought}/${r.races}</td><td class="r num">${r.hit}</td>
-        <td class="r num">${U.pct(r.invest ? r.ret / r.invest : null, 1)}</td><td class="r num">${U.pct(r.races ? r.capture / r.races : null, 1)}</td></tr>`).join('')}
-    </tbody></table></div>`;
+    const tr = (r, cls, label, href) => { const pl = r.ret - r.invest;
+      return `<tr class="${cls} ${pl > 0 ? 'plus' : pl < 0 ? 'minus' : ''}"${href ? ` data-href="${href}"` : ''}>
+        <td class="l">${label}</td><td class="r">${U.num(r.bought)}</td><td class="r">${U.num(r.hit)}</td>
+        <td class="r">${U.num(r.invest)}</td><td class="r">${U.num(r.ret)}</td>
+        <td class="r rr">${U.pct(r.invest ? r.ret / r.invest : null, 1)}</td><td class="r pl">${r.invest ? U.money(pl) : '—'}</td></tr>`; };
+    const wd = ds => '日月火水木金土'[new Date(Date.UTC(+ds.slice(0, 4), +ds.slice(4, 6) - 1, +ds.slice(6, 8))).getUTCDay()];
+    const body = rows.slice().reverse().map(r => tr(r, '', `${U.md(r.date)}<span class="wd">${wd(r.date)}</span>`, `#/day/${r.date}`)).join('');
+    const t = rows.reduce((a, r) => { ['bought', 'hit', 'invest', 'ret'].forEach(k => { a[k] += r[k] || 0; }); return a; }, { bought: 0, hit: 0, invest: 0, ret: 0 });
+    return `<div class="card"><h2>日別（${rows.length}日）</h2>
+      <table class="dtab">
+      <colgroup><col class="c-d"><col class="c-n"><col class="c-n"><col class="c-y"><col class="c-y"><col class="c-rr"><col class="c-pl"></colgroup>
+      <thead><tr><th class="l">日付</th><th class="r">買い</th><th class="r">的中</th><th class="r">投資</th><th class="r">回収</th><th class="r">回収率</th><th class="r">収支</th></tr></thead>
+      <tbody>${body}${tr(t, 'tot', '合計', '')}</tbody></table>
+      <div class="note">買い・的中＝レース数。投資・回収・収支＝円（▲＝マイナス）。最下行＝この期間の合計。行をタップでその日の一覧。</div></div>`;
   },
 
   weeklyCard(w) {
