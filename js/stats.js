@@ -67,8 +67,8 @@ const Stats = {
       ${plan ? Stats.planBody(prow, pname, s, rg) :
         (empty ? `<div class="card muted">この期間の成績はまだありません（翌朝の朝ジョブから1日ずつ増えます）。</div>` : body)}
       ${Stats.weeklyCard(s.weekly)}
-      <div class="note">金額は全部仮想（7車男子＝1的中3,000円の変動額・100円未満の目は買わない・固いゲート無し・1レース最大1,500円／9車・ガールズ＝1レース3,000円・固いゲートあり／6車男子＝買わない（「6車（仮想）」は別口）・確定オッズで精算）。本番の損益はGASの台帳が正。<br>
-        成績は<b>全日を今のモデル（v15＋買い目v7.2）で計算し直した値</b>＝モデルを変えたら過去も同じモデルで引き直す（2026-10-20〜）。<br>
+      <div class="note">金額は全部仮想（7車男子＝1的中3,000円の変動額・100円未満の目は買わない・固いゲート無し・1レース最大1,500円／9車＝同ラインの1・2着（先頭→番手 or 番手→先頭）×3着だけ・1レース3,000円・固いゲートあり／ガールズ＝1レース3,000円・固いゲートあり／6車男子＝買わない（「6車（仮想）」は別口）・確定オッズで精算）。本番の損益はGASの台帳が正。<br>
+        成績は<b>全日を今のモデル（v15＋買い目v7.2・9車v8）で計算し直した値</b>＝モデルを変えたら過去も同じモデルで引き直す（2026-10-20〜）。<br>
         的中率と捕捉率が一緒に落ちたらモデル、的中率だけ落ちたら買い方（§6.146）。</div>`;
     view.querySelectorAll('#rchips .chip').forEach(c => c.onclick = () => { U.set('kai_range', c.dataset.r); Stats.draw(view); });
     view.querySelectorAll('#kchips2 .chip').forEach(c => c.onclick = () => { U.set('kai_kind2', c.dataset.k); Stats.draw(view); });
@@ -269,7 +269,7 @@ const Stats = {
         <td class="r num">${U.pct(a.races ? a.capture / a.races : null, 1)}</td></tr>`; }).join('');
     return `<div class="card"><h2>種別ごと（${n}日）</h2>
       <table><thead><tr><th>種別</th><th class="r">買い/終了</th><th class="r">的中率</th><th class="r">回収率／収支</th><th class="r">捕捉率</th></tr></thead><tbody>${trs}</tbody></table>
-      <div class="note">モデルも買い方も種別で違う（7車男子＝シナリオ木＋スジ×3着＋1的中3,000円の変動額（v7.1・100円未満の目は買わない）／9車＝tree9＋1レース3,000円／ガールズ＝レーティング＋1レース3,000円）。</div></div>`;
+      <div class="note">モデルも買い方も種別で違う（7車男子＝シナリオ木＋スジ×3着＋1的中3,000円の変動額（v7.1・100円未満の目は買わない）／9車＝tree9＋同ラインの1・2着×3着（v8）＋1レース3,000円／ガールズ＝レーティング＋1レース3,000円）。</div></div>`;
   },
 
   /** 7車男子のライン構造ごと（2026-10-20 Naoto「3:2:2、3:3:1 みたいに分けて回収率を出したい→構造ごとにモデルを変えていく」）
