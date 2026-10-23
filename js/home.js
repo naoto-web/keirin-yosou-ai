@@ -83,7 +83,7 @@ const Home = {
       ${d !== U.today() ? `<div style="text-align:center;margin-bottom:6px"><a class="btn small" href="#/day/${U.today()}">今日に戻る</a></div>` : ''}
       ${U.planChips('pchips')}
       ${j.plan && j.plan.id === 'MANSHA' ? `<div class="plannote mansha">🎯 <b>万車モデル（高配当狙い・別口・仮想）</b>＝${U.MANSHA_NOTE}${d < '20261021' ? ' この日は同じ定義で引き直した<b>参考</b>（観測は10/21〜）。' : ''}</div>`
-        : j.plan && j.plan.id === 'NOW' ? `<div class="plannote">🧮 この日は<b>今の買い目v7.2（スジ×3着・1的中3,000円・100円未満の目は買わない・固いゲート無し）で組み直した券面</b>。7車男子は凍結した確率と締切10分前のオッズで組み直しています。9車・ガールズは当時の本番のまま（買い方は今と同じ）。</div>`
+        : j.plan && j.plan.id === 'NOW' ? `<div class="plannote">🧮 この日は<b>今の買い目v7.2（スジ×3着・1的中3,000円・100円未満の目は買わない・固いゲート無し）で組み直した券面</b>。7車男子・9車は凍結した確率と締切10分前のオッズで組み直しています（9車は買い目v8.1）。ガールズ・6車男子は今の本線どおり見送り。</div>`
         : j.plan ? `<div class="plannote">🔬 <b>${U.esc(j.plan.name)}</b>（検証中の案・実際には買っていない）。7車男子だけ。</div>` : ''}
       ${j.plan && j.planSum && j.planSum.ref ? `<div class="plannote">📎 この日は<b>PCで作り直した参考値</b>（${j.planSum.ref}R）＝今のモデル（v15）で組んだもの。</div>` : ''}
       ${j.plan && j.planSum && j.planSum.prodOnly ? `<div class="plannote">📎 この日は全通りの確率を保存していない予想が${j.planSum.prodOnly}Rあります（全通りの保存は10/9の昼以降）。そのレースだけは組み直せないので、当時の本番の券面をそのまま出しています。</div>` : ''}
@@ -106,7 +106,7 @@ const Home = {
       ${Home.table(races, d)}
       ${j.plan && j.plan.id === 'MANSHA'
         ? '<div class="note">万車モデル＝金額は全部仮想（1点100円×最大10点・締切10分前のオッズで選び確定払戻で精算）。本線の券面は上の切替で「本線」。的中50本たまるまで数字は読まない（本体 §6.176.5）。</div>'
-        : '<div class="note">金額は全部仮想（7車男子＝1的中3,000円の変動額・100円未満の目は買わない・1レース最大1,500円／9車・ガールズ＝1レース3,000円・確定オッズで精算）。本番の損益はGASの台帳が正。</div>'}`;
+        : '<div class="note">金額は全部仮想（7車男子＝1的中3,000円の変動額・100円未満の目は買わない・1レース最大1,500円／9車＝1レース3,000円／ガールズ・6車男子＝買わない・確定オッズで精算）。本番の損益はGASの台帳が正。</div>'}`;
     view.querySelectorAll('tr[data-href]').forEach(tr => tr.onclick = () => { location.hash = tr.dataset.href; });
     view.querySelectorAll('#pchips .chip').forEach(c => c.onclick = () => { U.set('kai_plan', c.dataset.plan); Home.render(view, Home.d); });
     view.querySelectorAll('#kchips3 .chip').forEach(c => c.onclick = () => { U.set('kai_kind3', c.dataset.k3); Home.draw(view, r); });
