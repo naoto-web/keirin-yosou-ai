@@ -51,10 +51,11 @@ const Stats = {
     // 種別の切り替え（2026-10-20 Naoto「通常（7車男子）・ガールズ・グレード（9車）で分けて回収率を見れるように」）
     //   ＝daily_digest の kinds（種別ごとの同じ定義の内訳）を日の行に読み替えて、小計・グラフ・日別表をそのまま使う。仕分け・自信度別は本番全体にしか無いので出さない
     // 2026-10-21 §6.179＝6車男子は本線で見送り。チップ「6車（仮想）」は「もし買っていたら（差し×3着）」の別口の成績（daily_digest の k6）
-    const KINDS = [['all', '全部'], ['7車男子', '7車男子'], ['9車男子', '9車（グレード）'], ['ガールズ', 'ガールズ'], ['6車男子', '6車（仮想）']];
+    // 2026-10-24 §6.190.7＝ガールズも本線で見送り。チップ「ガールズ（仮想）」は「もし買っていたら（見送る前の v6）」の別口の成績（daily_digest の girlsV6）
+    const KINDS = [['all', '全部'], ['7車男子', '7車男子'], ['9車男子', '9車（グレード）'], ['ガールズ', 'ガールズ（仮想）'], ['6車男子', '6車（仮想）']];
     const kind = U.get('kai_kind2', 'all');
     const krows = kind === 'all' ? rows : rows.filter(r => r.kinds && r.kinds[kind]).map(r => Object.assign({ date: r.date, diag: {}, hitDiag: {}, skipLoss: 0, cutLoss: 0, kinds: null, structs: kind === '7車男子' ? r.structs : null }, r.kinds[kind]));
-    const body = kind === '6車男子' ? Stats.k6Body(rows) : kind === 'all'
+    const body = kind === '6車男子' ? Stats.k6Body(rows) : kind === 'ガールズ' ? Stats.girlsBody(rows) : kind === 'all'
       ? Stats.sumCard(rows) + Stats.kindCard(rows) + Stats.structCard(rows) + Stats.chartCard(rows) + Stats.planCard(s, rg) + '<div id="gradecard"></div>' + Stats.diagCard(rows) + Stats.tableCard(rows)
       : (krows.length ? Stats.sumCard(krows, true) + (kind === '7車男子' ? Stats.structCard(krows) : '') + Stats.chartCard(krows) + Stats.tableCard(krows) : `<div class="card muted">この期間に${U.esc(kind)}の記録がありません。</div>`);
 
@@ -67,7 +68,7 @@ const Stats = {
       ${plan ? Stats.planBody(prow, pname, s, rg) :
         (empty ? `<div class="card muted">この期間の成績はまだありません（翌朝の朝ジョブから1日ずつ増えます）。</div>` : body)}
       ${Stats.weeklyCard(s.weekly)}
-      <div class="note">金額は全部仮想（7車男子＝1的中3,000円の変動額・100円未満の目は買わない・固いゲート無し・1レース最大1,500円／9車＝同ラインの1・2着（先頭→番手 or 番手→先頭）×3着だけ・1レース3,000円・固いゲート無し／ガールズ＝1レース3,000円・固いゲートあり／6車男子＝買わない（「6車（仮想）」は別口）・確定オッズで精算）。本番の損益はGASの台帳が正。<br>
+      <div class="note">金額は全部仮想（7車男子＝1的中3,000円の変動額・100円未満の目は買わない・固いゲート無し・1レース最大1,500円／9車＝同ラインの1・2着（先頭→番手 or 番手→先頭）×3着だけ・1レース3,000円・固いゲート無し／ガールズ＝買わない（「ガールズ（仮想）」は別口）／6車男子＝買わない（「6車（仮想）」は別口）・確定オッズで精算）。本番の損益はGASの台帳が正。<br>
         成績は<b>全日を今のモデル（v15＋買い目v7.2・9車v8.1）で計算し直した値</b>＝モデルを変えたら過去も同じモデルで引き直す（2026-10-20〜）。<br>
         的中率と捕捉率が一緒に落ちたらモデル、的中率だけ落ちたら買い方（§6.146）。</div>`;
     view.querySelectorAll('#rchips .chip').forEach(c => c.onclick = () => { U.set('kai_range', c.dataset.r); Stats.draw(view); });
@@ -110,6 +111,29 @@ const Stats = {
         <td class="r num">${U.pct(r.invest ? r.ret / r.invest : null, 1)}</td></tr>`).join('')}
       </tbody></table><div class="note">「万車」＝買ったレースのうち万車（払戻1万円以上）が来た数。日付をタップすると、その日の一覧を万車モデルで開きます。</div></div>`;
     return head + sumCard + selCard + Stats.chartCard(mr) + table;
+  },
+
+  /** ガールズの「もし買っていたら」（本体 §6.190.7・2026-10-24）＝daily_digest の girlsV6（hansei.js の出口・見送る前の v6・確定オッズで組み確定で精算）。
+   *  本線はガールズを見送る＝ここの数字は本線の成績に入っていない。記録は引き直した日から */
+  girlsBody(rows) {
+    const gr = rows.filter(r => r.girlsV6).map(r => Object.assign({ date: r.date }, r.girlsV6));
+    const head = `<div class="plannote k6">👧 <b>ガールズ＝本線は見送り。ここは「もし買っていたら」（別口・仮想）</b>＝${U.GIRLS_NOTE}</div>`;
+    if (!gr.length) return head + `<div class="card muted">この期間の記録はありません（翌朝の朝ジョブから増えます）。</div>`;
+    const sum = k => gr.reduce((a, r) => a + (r[k] || 0), 0);
+    const inv = sum('invest'), ret = sum('ret'), bought = sum('bought'), hit = sum('hit');
+    const sumCard = `<div class="card sum">
+        <div><div class="v num">${U.pct(inv ? ret / inv : null, 1)}</div><div class="k">回収率</div></div>
+        <div><div class="v num">${hit}<span class="small muted">/${bought}R</span></div><div class="k">的中 ${U.pct(bought ? hit / bought : null, 1)}</div></div>
+        <div><div class="v num">${U.num(ret)}</div><div class="k">回収／投資 ${U.num(inv)}</div></div>
+        <div><div class="v num">${gr.length}<span class="small muted">日</span></div><div class="k">収支 ${ret - inv >= 0 ? '+' : ''}${U.num(ret - inv)}円</div></div>
+      </div>
+      <div class="card"><div class="kv"><span class="k">対象→買い</span><span class="num">${sum('races')}R → ${bought}R（固いゲートで見送り ${sum('skipped')}R）</span>
+        <span class="k">過去データ</span><span class="num">64.9%<span class="small muted">（2025-10〜2026-10・680R）</span></span></div></div>`;
+    const table = `<div class="card"><h2>日別</h2><table><thead><tr><th>日付</th><th class="r">買い/ガールズ</th><th class="r">的中</th><th class="r">投資</th><th class="r">回収率</th></tr></thead><tbody>
+      ${gr.slice().reverse().map(r => `<tr><td><a href="#/day/${r.date}">${U.dateLabel(r.date)}</a></td><td class="r num">${r.bought}/${r.races}</td><td class="r num">${r.hit}</td><td class="r num">${U.num(r.invest)}</td>
+        <td class="r num">${U.pct(r.invest ? r.ret / r.invest : null, 1)}</td></tr>`).join('')}
+      </tbody></table></div>`;
+    return head + sumCard + Stats.chartCard(gr) + table;
   },
 
   /** 6車男子の「もし買っていたら」（本体 §6.179・2026-10-21）＝daily_digest の k6（hansei.js の出口・t10 で選び確定で精算）をそのまま足す。
@@ -269,7 +293,7 @@ const Stats = {
         <td class="r num">${U.pct(a.races ? a.capture / a.races : null, 1)}</td></tr>`; }).join('');
     return `<div class="card"><h2>種別ごと（${n}日）</h2>
       <table><thead><tr><th>種別</th><th class="r">買い/終了</th><th class="r">的中率</th><th class="r">回収率／収支</th><th class="r">捕捉率</th></tr></thead><tbody>${trs}</tbody></table>
-      <div class="note">モデルも買い方も種別で違う（7車男子＝シナリオ木＋スジ×3着＋1的中3,000円の変動額（v7.1・100円未満の目は買わない）／9車＝tree9＋同ラインの1・2着×3着（v8）＋1レース3,000円／ガールズ＝レーティング＋1レース3,000円）。</div></div>`;
+      <div class="note">モデルも買い方も種別で違う（7車男子＝シナリオ木＋スジ×3着＋1的中3,000円の変動額（v7.1・100円未満の目は買わない）／9車＝tree9＋同ラインの1・2着×3着（v8）＋1レース3,000円／ガールズ＝2026-10-24から本線は見送り（§6.190.7・それ以前の日も今の買い方で引き直すと買い0）／6車男子＝見送り）。</div></div>`;
   },
 
   /** 7車男子のライン構造ごと（2026-10-20 Naoto「3:2:2、3:3:1 みたいに分けて回収率を出したい→構造ごとにモデルを変えていく」）
