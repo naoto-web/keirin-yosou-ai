@@ -50,7 +50,9 @@ const Home = {
   },
   draw(view, r) {
     const j = Home.asPlan(r.j), d = Home.d;
-    const venue = U.get('kai_venue', 'all'), kind = U.get('kai_kind', 'all'), kind3 = U.get('kai_kind3', 'all');
+    // 万車モードかを先に決める（sumOf・table がガールズの2車複を出すか判断するため）
+    Home.isM = !!(j.plan && j.plan.id === 'MANSHA');
+    const venue =U.get('kai_venue', 'all'), kind = U.get('kai_kind', 'all'), kind3 = U.get('kai_kind3', 'all');
     const venues = (j.venues || []);
     // 種別のボタン（2026-10-20 Naoto「ボタンでガールズだけ・グレードだけ、と選べるように」）＝一覧も小計もその種別だけに
     const KINDS3 = [['all', '全部'], ['7', '7車男子'], ['9', '9車（グレード）'], ['g', 'ガールズ']];
@@ -116,7 +118,12 @@ const Home = {
   /** 種別で絞ったときの小計（APIの sum と同じ定義＝結果が出た買いだけ投資と回収を足す） */
   sumOf(races) {
     const s = { races: 0, buy: 0, hit: 0, settled: 0, stake: 0, ret: 0 };
-    races.forEach(x => { s.races++; if (!x.pred || !x.pred.buy) return; s.buy++; if (x.hit == null) return; s.settled++; s.stake += x.pred.stake || 0; s.ret += x.ret || 0; if (x.hit) s.hit++; });
+    races.forEach(x => {
+      s.races++;
+      // ガールズの行＝2車複（gf・別口・§6.190.13〜14）で数える（ガールズの本線＝3連単は見送り）
+      if (!Home.isM && x.isGirls && x.gf) { if (!x.gf.n) return; s.buy++; if (x.gf.hit == null || x.gf.ret == null) return; s.settled++; s.stake += x.gf.inv || 0; s.ret += x.gf.ret || 0; if (x.gf.hit) s.hit++; return; }
+      if (!x.pred || !x.pred.buy) return; s.buy++; if (x.hit == null) return; s.settled++; s.stake += x.pred.stake || 0; s.ret += x.ret || 0; if (x.hit) s.hit++;
+    });
     return s;
   },
   /** 1レース1行の表（2026-10-21 Naoto「08:27/青森1R/3:2:2/1点/投400円/回0円/▲400円/累▲400円」・縦列をそろえる）
@@ -126,13 +133,16 @@ const Home = {
     if (!races.length) return '<div class="card muted">該当するレースはありません</div>';
     let cum = 0;
     const rows = races.map(x => {
-      const p = x.pred, buy = !!(p && p.buy), settled = buy && x.hit != null;
-      const inv = buy ? (p.stake || 0) : 0, ret = settled ? (x.ret || 0) : null, pl = settled ? ret - inv : null;
+      // ガールズの行＝2車複（gf・別口・仮想）を出す。印「複」・過去日は「参考」（確定オッズで組んだもの）
+      const g = !Home.isM && x.isGirls && x.gf ? x.gf : null;
+      const p = g ? (g.n ? { buy: true, n: g.n, stake: g.inv } : { buy: false }) : x.pred;
+      const buy = !!(p && p.buy), hitV = g ? (g.ret == null ? null : g.hit) : x.hit, settled = buy && hitV != null;
+      const inv = buy ? (p.stake || 0) : 0, ret = settled ? (g ? g.ret || 0 : x.ret || 0) : null, pl = settled ? ret - inv : null;
       if (settled) cum += pl;
-      const cls = settled ? (x.hit ? 'hit' : 'miss') : buy ? 'open' : 'skip';
+      const cls = settled ? (hitV ? 'hit' : 'miss') : buy ? 'open' : 'skip';
       const cd = U.countdown(d, x.den), soon = cd && /^あと\d+分$/.test(cd) && +cd.replace(/\D/g, '') <= 15;
       const jm = U.jikoMain(x.jiko);
-      const marks = `${x.isGirls ? '<span class="rb g">G</span>' : x.cars === 9 ? '<span class="rb">9</span>' : ''}${x.res && x.res.pay >= 10000 ? '<span class="rb man">万</span>' : ''}${jm ? `<span class="rb jiko">${jm.slice(0, 1)}</span>` : ''}`;
+      const marks = `${x.isGirls ? '<span class="rb g">G</span>' : x.cars === 9 ? '<span class="rb">9</span>' : ''}${g ? `<span class="rb g">複${g.ref ? '・参考' : ''}</span>` : ''}${x.res && x.res.pay >= 10000 ? '<span class="rb man">万</span>' : ''}${jm ? `<span class="rb jiko">${jm.slice(0, 1)}</span>` : ''}`;
       return `<tr class="${cls}" data-href="#/race/${d}/${x.jo}/${x.no}">
         <td class="l hm ${soon ? 'soon' : ''}">${U.esc(x.den || x.start || '')}</td>
         <td class="l race">${U.esc(x.venue)}${x.no}R${marks}</td>
@@ -147,6 +157,6 @@ const Home = {
       <colgroup><col class="c-hm"><col class="c-race"><col class="c-st"><col class="c-pts"><col class="c-inv"><col class="c-ret"><col class="c-pl"><col class="c-cum"></colgroup>
       <thead><tr><th class="l">時刻</th><th class="l">レース</th><th class="l">構造</th><th class="r">点</th><th class="r">投資</th><th class="r">回収</th><th class="r">収支</th><th class="r">累計</th></tr></thead>
       <tbody>${rows}</tbody></table>
-      <div class="note">構造＝並びの車数（大きい順・1＝単騎）。点＝買い目の点数（見送＝見送り）。投資・回収・収支＝円（▲＝マイナス）。累計＝表示している行を時刻順に足した収支（結果の出た買いだけ）。「…」＝結果待ち。印＝G ガールズ・9 9車・万 万車（払戻1万円以上）・落/失 事故。行をタップで詳細。</div>`;
+      <div class="note">構造＝並びの車数（大きい順・1＝単騎）。点＝買い目の点数（見送＝見送り）。投資・回収・収支＝円（▲＝マイナス）。累計＝表示している行を時刻順に足した収支（結果の出た買いだけ）。「…」＝結果待ち。印＝G ガールズ・9 9車・万 万車（払戻1万円以上）・落/失 事故・複＝ガールズ（2車複・別口・仮想／「参考」は締切10分前が無い日を確定オッズで組んだもの）。ガールズの行の数字は2車複。上の小計は「全部」のとき本線（3連単）だけ・「ガールズ」を選ぶと2車複。行をタップで詳細。</div>`;
   }
 };
