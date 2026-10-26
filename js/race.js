@@ -153,11 +153,12 @@ const Race = {
     const verdict = s ? (s.hit ? (s.ret != null ? `<span class="badge hit">的中 ${U.yen(s.ret)}（投資 ${U.yen(inv)}）</span>` : `<span class="badge hit">的中（確定オッズ待ち・投資 ${U.yen(inv)}）</span>`) : `<span class="badge miss">外れ（投資 ${U.yen(inv)}）</span>`) : '';
     const rows = g.set.map(x => `<tr class="${x.k === resF ? 'hitrow' : ''}"><td>${U.comboHtml(x.k, true)}</td>
       <td class="r num">${U.num(x.stake)}円<div class="small muted">${U.odds(x.odds)}→${U.num(x.stake * x.odds)}円</div></td>
-      <td class="r num">${x.rank}番人気</td><td class="r num">${x.ratio.toFixed(2)}</td></tr>`).join('');
+      <td class="r num">${x.rank != null ? x.rank + '番人気' : '—'}</td><td class="r num">${x.ratio != null ? x.ratio.toFixed(2) : '—'}</td></tr>`).join('');
+    // ref＝過去日の参考（確定オッズで組んだもの・§6.190.14）
     return `<div class="card k6card"><h2>${title}</h2>
-      <div class="row" style="flex-wrap:wrap;gap:6px"><span class="badge buy">2車複 ${g.set.length}点</span>${verdict}</div>
+      <div class="row" style="flex-wrap:wrap;gap:6px"><span class="badge buy">2車複 ${g.set.length}点</span>${g.ref ? '<span class="badge grade">参考</span>' : ''}${verdict}</div>
       <table style="margin-top:6px"><thead><tr><th>目（2車複）</th><th class="r">金額／オッズ</th><th class="r">池の人気</th><th class="r">ずれ</th></tr></thead><tbody>${rows}</tbody></table>
-      <div class="note">ずれ＝本命補正をかけた3連単から出した確率÷2車複の池の確率（1.3以上を買う）。オッズは締切10分前。${U.GFUKU_NOTE}</div></div>`;
+      <div class="note">${g.ref ? 'この日は締切10分前の2車複が無いので、<b>確定オッズで組んだ参考</b>です（本番より甘め）。' : 'ずれ＝本命補正をかけた3連単から出した確率÷2車複の池の確率（1.3以上を買う）。オッズは締切10分前。'}${U.GFUKU_NOTE}</div></div>`;
   },
 
   /** 6車男子の「もし買っていたら」（本体 §6.179・2026-10-21 Naoto「6車男子は見送り。もし購入した場合は詳細で見れるように」）
