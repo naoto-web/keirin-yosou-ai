@@ -23,6 +23,7 @@ const Race = {
       ${Race.resultCard(j, lines)}
       ${Race.planCard(j, lines)}
       ${Race.k6Card(j, lines)}
+      ${Race.gfCard(j)}
       ${Race.reviewCard(j, d)}
       ${Race.honsenBelow(j, d, p, odds, resK, lines)}
       ${Race.scenCard(p)}
@@ -139,6 +140,24 @@ const Race = {
       <table style="margin-top:6px"><thead><tr><th>目</th><th class="r">金額／オッズ</th><th class="r">モデル</th><th class="r">市場</th></tr></thead><tbody>${rows}</tbody></table>
       <div class="note">${isM ? `${U.MANSHA_NOTE} オッズは${SNAP[pl.snap] || pl.snap}時点。下の「買い目」は本線の券面（別口）。` : now ? `凍結した確率と${SNAP[pl.snap] || pl.snap}のオッズで、今の買い目v7.2（スジ×3着・賭金＝3,000÷オッズ・100円未満の目は買わない・固いゲート無し）に組み直したもの。当時の本番の券面（旧ルール）は出しません。`
         : `検証中の案（実際には買っていない）。オッズは${SNAP[pl.snap] || pl.snap}時点で組んだもの。下の「買い目」は本番の券面です。`}</div></div>`;
+  },
+
+  /** ガールズ（2車複）（本体 §6.190.13・2026-10-26 Naoto「2024年9月からいい調子なら本番に入れちゃおう」）
+   *  ＝APIの gf 欄（締切10分前の3連単と2車複で組む・別口・仮想・戻す線なし）。ガールズ以外は gf が null＝何も出さない */
+  gfCard(j) {
+    const g = j.gf; if (!g) return '';
+    const title = '🎀 ガールズ（2車複・別口・仮想）';
+    if (!g.set) return `<div class="card k6card"><h2>${title}</h2><div class="small">${U.esc(g.skip || '買い目なし')}</div><div class="note">${U.GFUKU_NOTE}</div></div>`;
+    const resF = j.res && j.res.k ? j.res.k.split('-').slice(0, 2).map(Number).sort((a, b) => a - b).join('-') : null, s = g.settle;
+    const inv = g.invest || g.set.length * 100;
+    const verdict = s ? (s.hit ? (s.ret != null ? `<span class="badge hit">的中 ${U.yen(s.ret)}（投資 ${U.yen(inv)}）</span>` : `<span class="badge hit">的中（確定オッズ待ち・投資 ${U.yen(inv)}）</span>`) : `<span class="badge miss">外れ（投資 ${U.yen(inv)}）</span>`) : '';
+    const rows = g.set.map(x => `<tr class="${x.k === resF ? 'hitrow' : ''}"><td>${U.comboHtml(x.k, true)}</td>
+      <td class="r num">${U.num(x.stake)}円<div class="small muted">${U.odds(x.odds)}→${U.num(x.stake * x.odds)}円</div></td>
+      <td class="r num">${x.rank}番人気</td><td class="r num">${x.ratio.toFixed(2)}</td></tr>`).join('');
+    return `<div class="card k6card"><h2>${title}</h2>
+      <div class="row" style="flex-wrap:wrap;gap:6px"><span class="badge buy">2車複 ${g.set.length}点</span>${verdict}</div>
+      <table style="margin-top:6px"><thead><tr><th>目（2車複）</th><th class="r">金額／オッズ</th><th class="r">池の人気</th><th class="r">ずれ</th></tr></thead><tbody>${rows}</tbody></table>
+      <div class="note">ずれ＝本命補正をかけた3連単から出した確率÷2車複の池の確率（1.3以上を買う）。オッズは締切10分前。${U.GFUKU_NOTE}</div></div>`;
   },
 
   /** 6車男子の「もし買っていたら」（本体 §6.179・2026-10-21 Naoto「6車男子は見送り。もし購入した場合は詳細で見れるように」）
