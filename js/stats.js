@@ -121,6 +121,10 @@ const Stats = {
     if (!gr.length) return head + `<div class="card muted">まだ記録がありません（10/26 夜の本番から2車複を取り始めました＝翌朝の朝ジョブから1日ずつ増えます）。</div>`;
     const sum = k => gr.reduce((a, r) => a + (r[k] || 0), 0);
     const inv = sum('invest'), ret = sum('ret'), bought = sum('bought'), hit = sum('hit'), pend = sum('pending');
+    // ref＝締切10分前の2車複が無い日を確定オッズで組んだ参考（§6.190.14）。本番（締切10分前で組んだ日）と分けて出す
+    const live = gr.filter(r => !r.ref), lsum = k => live.reduce((a, r) => a + (r[k] || 0), 0);
+    const liveCard = `<div class="card"><div class="kv"><span class="k">本番（締切10分前で組んだ日）</span><span class="num">${live.length ? `${live.length}日・的中 ${lsum('hit')}/${lsum('bought')}R・投資 ${U.num(lsum('invest'))}・回収率 ${U.pct(lsum('invest') ? lsum('ret') / lsum('invest') : null, 1)}` : 'まだありません（10/27 の朝から）'}</span>
+      <span class="k">参考（確定オッズで組んだ日）</span><span class="num">${gr.length - live.length}日・的中 ${hit - lsum('hit')}/${bought - lsum('bought')}R・回収率 ${U.pct((inv - lsum('invest')) ? (ret - lsum('ret')) / (inv - lsum('invest')) : null, 1)}</span></div></div>`;
     const sumCard = `<div class="card sum">
         <div><div class="v num">${U.pct(inv ? ret / inv : null, 1)}</div><div class="k">回収率</div></div>
         <div><div class="v num">${hit}<span class="small muted">/${bought}R</span></div><div class="k">的中 ${U.pct(bought ? hit / bought : null, 1)}</div></div>
@@ -130,10 +134,10 @@ const Stats = {
       <div class="card"><div class="kv"><span class="k">対象→買い</span><span class="num">${sum('races')}R → ${bought}R（見送り ${sum('skipped')}R）${pend ? `・精算待ち ${pend}` : ''}</span>
         <span class="k">過去データ</span><span class="num">127.6%<span class="small muted">（2024年9月〜2026年10月）・89.6%（2023年10月〜2024年8月）</span></span></div></div>`;
     const table = `<div class="card"><h2>日別</h2><table><thead><tr><th>日付</th><th class="r">買い/ガールズ</th><th class="r">的中</th><th class="r">投資</th><th class="r">回収率</th></tr></thead><tbody>
-      ${gr.slice().reverse().map(r => `<tr><td><a href="#/day/${r.date}">${U.dateLabel(r.date)}</a></td><td class="r num">${r.bought}/${r.races}</td><td class="r num">${r.hit}</td><td class="r num">${U.num(r.invest)}</td>
+      ${gr.slice().reverse().map(r => `<tr><td><a href="#/day/${r.date}">${U.dateLabel(r.date)}</a>${r.ref ? '<span class="small muted"> 参考</span>' : ''}</td><td class="r num">${r.bought}/${r.races}</td><td class="r num">${r.hit}</td><td class="r num">${U.num(r.invest)}</td>
         <td class="r num">${U.pct(r.invest ? r.ret / r.invest : null, 1)}</td></tr>`).join('')}
-      </tbody></table><div class="note">ガールズのレースを開くと、その日の2車複の券面が見られます。</div></div>`;
-    return head + sumCard + Stats.chartCard(gr) + table;
+      </tbody></table><div class="note">ガールズのレースを開くと、その日の2車複の券面が見られます。「参考」＝締切10分前の2車複が無い日を確定オッズで組んだもの（本番より甘め）。</div></div>`;
+    return head + sumCard + liveCard + Stats.chartCard(gr) + table;
   },
 
   /** ガールズの「もし買っていたら」（本体 §6.190.7・2026-10-24）＝daily_digest の girlsV6（hansei.js の出口・見送る前の v6・確定オッズで組み確定で精算）。
